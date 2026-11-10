@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <!-- Alarme exacte de fin de repos (chrono de repos = usage "minuteur") -->
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+
+  <application>
+    <receiver
+      android:name="com.qojim.qoworkout.WorkoutReceiver"
+      android:exported="false" />
+  </application>
+</manifest>

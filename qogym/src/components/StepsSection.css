@@ -1,0 +1,157 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   StepsSection — bloc "Pas quotidiens" dans le profil
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.steps-section .card-description {
+  margin-bottom: 0.9rem;
+}
+
+.steps-today {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+.steps-today-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary, #dfeee4);
+  font-variant-numeric: tabular-nums;
+}
+.steps-today-unit {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary, #9aa79a);
+}
+
+.steps-source-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+.steps-source-badge--native {
+  background: rgba(46, 204, 113, 0.16);
+  color: var(--success-color, #2ecc71);
+}
+.steps-source-badge--manual {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #9aa79a);
+}
+
+.steps-manual-trigger {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+  color: var(--highlight-color, #2e7d50);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.steps-manual-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.steps-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.45rem 0.6rem;
+  background: var(--bg-color, #1a1d1c);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.9rem;
+}
+
+.steps-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+}
+.steps-goal-row .kcal-target-input {
+  width: 110px;
+}
+.steps-goal-msg {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--success-color, #2ecc71);
+}
+
+/* ----- Historique ----- */
+.steps-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.2rem 0 0.6rem;
+}
+.steps-history-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--primary-color, #dff3e8);
+}
+.steps-range-tabs {
+  display: flex;
+  gap: 0.3rem;
+}
+.steps-range-tab {
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  color: var(--text-secondary, #9aa79a);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.steps-range-tab.is-active {
+  background: var(--highlight-color, #2e7d50);
+  border-color: var(--highlight-color, #2e7d50);
+  color: #fff;
+}
+
+.steps-stats-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.steps-stat {
+  flex: 1;
+  text-align: center;
+  background: var(--bg-color, #1a1d1c);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  padding: 0.55rem 0.4rem;
+}
+.steps-stat-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #dfeee4);
+  font-variant-numeric: tabular-nums;
+}
+.steps-stat-lbl {
+  font-size: 0.68rem;
+  color: var(--text-secondary, #9aa79a);
+  margin-top: 0.1rem;
+}
+
+.steps-chart {
+  margin-top: 0.4rem;
+}
+.steps-chart-loading,
+.steps-chart-empty {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.85rem;
+}

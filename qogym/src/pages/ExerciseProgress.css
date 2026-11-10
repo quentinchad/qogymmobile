@@ -1,0 +1,134 @@
+.exprog-hero {
+  text-align: center;
+  padding: 1.75rem 1.5rem;
+}
+
+.exprog-hero-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.exprog-hero-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #ffd76a;
+  line-height: 1.1;
+}
+
+.exprog-hero-sub {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.exprog-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exprog-preset-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.exprog-preset-tab {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exprog-preset-tab:hover {
+  border-color: var(--highlight-color);
+  color: var(--highlight-color);
+}
+
+.exprog-preset-tab.is-active {
+  background: var(--highlight-color);
+  border-color: var(--highlight-color);
+  color: white;
+}
+
+.exprog-custom-dates {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.exprog-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 140px;
+}
+
+.exprog-date-field input {
+  margin: 0;
+}
+
+.exprog-chart-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.exprog-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.exprog-session {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+}
+
+.exprog-session-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.exprog-session-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.exprog-session-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+}
+
+.exprog-session-sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.exprog-set-chip {
+  font-size: 0.78rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}

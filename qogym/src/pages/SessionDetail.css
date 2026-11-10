@@ -1,0 +1,56 @@
+/* ══════════════════════════════════════════════
+   SUPERSETS — affichage en preview de séance
+   (mêmes conventions visuelles que CreateSession)
+══════════════════════════════════════════════ */
+
+.superset-block {
+  background-color: rgba(46, 204, 113, 0.06);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.superset-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--success-color, #2ecc71);
+  margin-bottom: 0.5rem;
+}
+
+.superset-block-icon {
+  font-size: 0.85rem;
+}
+
+/* Petit chevron entre deux exos d'un superset (sur mobile/preview) */
+.superset-connector-mini {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: var(--success-color, #2ecc71);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Pour positionner le connecteur correctement à l'intérieur de chaque card */
+.superset-block .exercise-item {
+  position: relative;
+}
+
+/* Quand un .exercise-item est dans un superset-block, on le laisse étendu
+   sans la bordure verte gauche (le bloc parent porte déjà le décor). */
+.superset-block .exercise-item--in-superset {
+  border-left: none;
+  background-color: transparent;
+  padding-left: 1rem;
+}
+.superset-block .exercise-item--in-superset:hover {
+  background-color: rgba(46, 204, 113, 0.05);
+}

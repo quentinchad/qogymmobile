@@ -1,0 +1,57 @@
+.qojim-description {
+  background-color: var(--card-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #ffd700;
+}
+
+.qojim-card {
+  position: relative;
+  border: 2px solid #ffd700;
+}
+
+.qojim-card.with-background-image {
+  color: white;
+  border: 2px solid rgba(255, 215, 0, 0.7);
+}
+
+.qojim-card.with-background-image .card-title {
+  color: white;
+}
+
+.qojim-card.with-background-image .card-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.qojim-card.with-background-image .qojim-creator {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.qojim-badge-wrapper {
+  margin-bottom: 0.75rem;
+}
+
+.qojim-creator {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.qojim-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .qojim-actions {
+    flex-direction: column;
+  }
+  
+  .qojim-actions .btn {
+    width: 100%;
+  }
+}

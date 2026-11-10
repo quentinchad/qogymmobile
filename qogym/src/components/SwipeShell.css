@@ -1,0 +1,134 @@
+/* ============================================================================
+   SwipeShell — carousel horizontal des pages principales
+   ============================================================================ */
+
+.swipe-shell {
+  position: relative;
+  /* Comme .app-content, on prend tout l'espace flex restant dans .app
+     (qui est en flex column, min-height 100vh). */
+  flex: 1;
+  width: 100%;
+  /* min-height: 0 est crucial pour que flex:1 marche dans un flex column
+     parent — sinon le contenu force la hauteur intrinsèque. */
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior-x: none;
+  /* On gère nous-mêmes l'horizontal (preventDefault sur touchmove) ; on
+     laisse le navigateur gérer le vertical nativement → scroll plus fluide. */
+  touch-action: pan-y;
+}
+
+/* ----- Rail horizontal des slides ----- */
+.swipe-shell-track {
+  display: flex;
+  height: 100%;
+  /* Pas de transition pendant le drag : le translate suit le doigt en temps
+     réel. La transition n'est activée que quand .animating est posée
+     (snap après le geste, ou changement programmatique d'index). */
+  transition: none;
+  will-change: transform;
+}
+.swipe-shell-track.animating {
+  /* Easing rapide et net, à la Instagram/iOS */
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+/* Pendant le drag actif on garde will-change (déjà ci-dessus) ; pas de
+   transition pour rester collé au doigt. */
+
+.swipe-shell-slide {
+  /* Chaque slide occupe 100% du viewport. Comme le track a width N×100%,
+     une `flex: 0 0 (100/N)%` ferait l'affaire MAIS on ne connaît pas N en
+     CSS. Solution : on calcule en JS via le style inline du track et on
+     laisse les enfants se comporter en flex 1. */
+  flex: 1 0 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Chaque slide a son propre scroll vertical. */
+  position: relative;
+}
+
+/* ----- Overlay des routes non-main ----- */
+.swipe-shell-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-color, #15201a);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Animation d'entrée discrète quand on quitte une main page */
+  animation: shellOverlayIn 0.18s ease-out;
+}
+.swipe-shell-overlay.hidden {
+  display: none;
+  animation: none;
+}
+
+@keyframes shellOverlayIn {
+  from { opacity: 0.85; transform: translateY(2px); }
+  to   { opacity: 1;    transform: none; }
+}
+
+/* ----- Mode desktop ou route non-main : pas de carousel actif ----- */
+.swipe-shell.desktop .swipe-shell-track {
+  /* On peut garder le rail pour ne pas remount les pages, mais comme on
+     n'a pas de geste, le snap CSS suffit. */
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ----- Compatibilité avec les pages existantes ----- */
+
+/* Le `.page-header` global est en position:fixed (top:0, z:1000). Dans le
+   contexte du carousel, ça causerait un empilement des headers de toutes
+   les slides. On bascule en `sticky` à l'intérieur du shell : chaque
+   slide garde son propre header collé en haut de son scroll vertical. */
+.swipe-shell-slide .page-header {
+  position: sticky;
+  top: 0;
+  left: auto;
+  right: auto;
+  width: auto;
+  z-index: 10;
+}
+
+/* Le margin-top: 75px du page-container compensait la hauteur du header
+   fixed. Avec un sticky, plus besoin de cette marge. */
+.swipe-shell-slide .page-container {
+  margin-top: 0;
+}
+
+/* Sur mobile, la BottomNav est en `position: fixed` en bas avec ~70px
+   de hauteur (cf. .bottom-nav dans App.css). On contraint le shell à
+   `100vh - 70px` pour que les slides aient une hauteur définie : sans
+   ça, sur les pages courtes (Profil par ex.), `flex:1` ne contraint
+   rien (le parent .app est en min-height, pas en height), et le scroll
+   vertical du slide pouvait continuer dans le vide.
+
+   Le padding-bottom sur les slides n'est PAS nécessaire ici parce que
+   la zone scrollable s'arrête déjà 70px au-dessus du bas du viewport,
+   donc la BottomNav (fixe) ne masque jamais le contenu. */
+@media (max-width: 768px) {
+  .swipe-shell {
+    height: calc(100vh - 70px);
+    /* Variante moderne : `100dvh` (dynamic viewport height) gère mieux
+       les barres mobiles qui s'affichent/se cachent au scroll. */
+    height: calc(100dvh - 70px);
+    flex: none; /* Plus besoin de flex-grow vu qu'on a une hauteur explicite */
+  }
+  .swipe-shell-overlay {
+    padding-bottom: 70px;
+  }
+}
+
+/* Sur desktop, la BottomNav devient une sidebar gauche : le grid layout
+   d'App.css gère le placement, on n'a rien à faire. Mais on doit garder
+   le SwipeShell occupant tout son cell. */
+@media (min-width: 768px) {
+  .swipe-shell {
+    height: 100%;
+    /* Reprend la place qu'avait .app-content dans le grid d'App.css */
+    grid-column: 2;
+    grid-row: 2;
+    overflow-y: auto;
+  }
+}

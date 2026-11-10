@@ -1,0 +1,138 @@
+/* ── RestTimePicker — vertical wheel ── */
+
+.rtp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: rtp-fade 0.15s ease-out;
+}
+@keyframes rtp-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rtp-modal {
+  background: var(--card-bg, #242a28);
+  color: var(--text-primary, #dfeee4);
+  border-radius: 18px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  padding: 1rem 1rem 0.75rem;
+  width: 100%;
+  max-width: 280px;
+  animation: rtp-slide 0.2s ease-out;
+}
+@keyframes rtp-slide {
+  from { transform: translateY(8px) scale(0.98); opacity: 0.5; }
+  to   { transform: none;                         opacity: 1; }
+}
+
+.rtp-title {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary, #9aa79a);
+  letter-spacing: 0.02em;
+  margin-bottom: 0.5rem;
+}
+
+/* Wheel container — fixed visible window of 5 rows */
+.rtp-wheel {
+  position: relative;
+  height: calc(44px * 5); /* 5 visible rows of 44px each */
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* Centre highlight band */
+.rtp-window {
+  position: absolute;
+  top: calc(44px * 2);
+  left: 0;
+  right: 0;
+  height: 44px;
+  background: rgba(46, 204, 113, 0.10);
+  border-top:    1px solid rgba(46, 204, 113, 0.35);
+  border-bottom: 1px solid rgba(46, 204, 113, 0.35);
+  pointer-events: none;
+  border-radius: 6px;
+}
+
+/* Scrollable list */
+.rtp-list {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Hide native scrollbar */
+}
+.rtp-list::-webkit-scrollbar { display: none; }
+
+.rtp-spacer {
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.rtp-item {
+  display: block;
+  width: 100%;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 1.05rem;
+  font-weight: 500;
+  cursor: pointer;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  padding: 0;
+  transition: color 0.15s, font-weight 0.15s, transform 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+
+.rtp-item--selected {
+  color: var(--success-color, #2ecc71);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+/* Actions */
+.rtp-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.rtp-btn {
+  flex: 1;
+  padding: 0.6rem 0;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.rtp-btn--ghost {
+  background: transparent;
+  border-color: var(--border-color, rgba(255, 255, 255, 0.1));
+  color: var(--text-secondary, #9aa79a);
+}
+.rtp-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #dfeee4);
+}
+.rtp-btn--primary {
+  background: var(--success-color, #2ecc71);
+  color: #0d1f17;
+}
+.rtp-btn--primary:hover {
+  filter: brightness(1.05);
+}

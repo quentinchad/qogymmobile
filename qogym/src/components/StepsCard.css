@@ -1,0 +1,168 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   StepsCard — carte compacte des pas du jour (en haut du Feed)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.steps-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.steps-card-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.steps-card-close:hover {
+  color: var(--text-primary, #dfeee4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Lien discret quand la carte est masquée */
+.steps-card-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem 0;
+  padding: 0.45rem 0.8rem;
+  background: var(--card-bg, #242a28);
+  color: var(--text-secondary, #9aa79a);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  border-radius: 999px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.steps-card-show:hover {
+  color: var(--text-primary, #dfeee4);
+}
+
+/* ----- Anneau ----- */
+.steps-card-ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.steps-card-ring {
+  width: 100%;
+  height: 100%;
+  /* Le cercle de progression doit démarrer en haut (12h) et tourner dans
+     le sens horaire → on tourne le SVG de -90°. */
+  transform: rotate(-90deg);
+}
+
+.steps-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 3;
+}
+
+.steps-ring-fill {
+  fill: none;
+  stroke: var(--success-color, #2ecc71);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-dasharray: 100, 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.steps-card-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.steps-card-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* ----- Corps ----- */
+.steps-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.steps-card-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #dfeee4);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.steps-card-unit {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary, #9aa79a);
+}
+
+.steps-card-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.steps-card-sub--muted {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.steps-card-edit-trigger {
+  margin-top: 0.45rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--highlight-color, #2e7d50);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.steps-card-edit {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.steps-card-input {
+  flex: 1;
+  min-width: 110px;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-color, #1a1d1c);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.9rem;
+}
+.steps-card-btn {
+  padding: 0.4rem 0.7rem;
+  background: var(--highlight-color, #2e7d50);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.steps-card-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary, #9aa79a);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+}

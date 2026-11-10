@@ -1,0 +1,72 @@
+/* Bouton "Lancer cette séance" */
+.wla-launch {
+  width: 100%;
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Conteneur des actions d'en-tête (⋯ + ✕) */
+.wla-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Menu ⋯ */
+.wla-menu {
+  position: relative;
+}
+.wla-menu-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.10));
+  border-radius: 8px;
+  color: var(--text-secondary, #9aa79a);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 0 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.wla-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #dfeee4);
+}
+.wla-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 250px;
+  z-index: 50;
+  background: var(--card-bg, #1a211c);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.wla-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.wla-menu-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+}
+.wla-menu-item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

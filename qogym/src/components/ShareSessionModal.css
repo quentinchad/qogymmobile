@@ -1,0 +1,231 @@
+/* ─── Overlay ─────────────────────────────────────────── */
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+
+/* ─── Modal ────────────────────────────────────────────── */
+.share-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: shareModalIn 0.22s ease;
+}
+
+@keyframes shareModalIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ─── Header ───────────────────────────────────────────── */
+.share-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.4rem 0.8rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.share-modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.share-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.share-modal-close:hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+}
+
+/* ─── Session pill ─────────────────────────────────────── */
+.share-modal-session {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1rem 1.4rem 0;
+  background: var(--accent-color);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+}
+
+.share-session-icon { font-size: 1.2rem; }
+
+.share-session-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Hint ─────────────────────────────────────────────── */
+.share-modal-hint {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 0.8rem 1.4rem 0.4rem;
+}
+
+/* ─── Loading ──────────────────────────────────────────── */
+.share-modal-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 2rem 1.4rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.share-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--highlight-color);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Empty ────────────────────────────────────────────── */
+.share-modal-empty {
+  padding: 2rem 1.4rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* ─── Friends list ─────────────────────────────────────── */
+.share-friends-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.share-friend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 1.4rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.share-friend-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.share-friend-item.selected {
+  background: rgba(46, 125, 80, 0.12);
+}
+
+/* Avatar */
+.share-friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--highlight-color);
+  flex-shrink: 0;
+}
+
+.share-friend-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.share-friend-name {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Checkbox visuel */
+.share-friend-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.share-friend-check.checked {
+  background: var(--highlight-color);
+  border-color: var(--highlight-color);
+}
+
+/* ─── Messages ─────────────────────────────────────────── */
+.share-modal-error,
+.share-modal-success {
+  margin: 0.5rem 1.4rem 0;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.share-modal-error {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.share-modal-success {
+  background: rgba(46, 204, 113, 0.12);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+/* ─── Footer ───────────────────────────────────────────── */
+.share-modal-footer {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: flex-end;
+  padding: 1rem 1.4rem 1.2rem;
+  border-top: 1px solid var(--border-color);
+}

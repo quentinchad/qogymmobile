@@ -1,0 +1,143 @@
+import axios from 'axios';
+
+// Configuration de l'URL de l'API
+// En production, changez cette URL vers votre serveur
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost/qogym-api/api';
+
+// Instance axios configurée
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercepteur pour ajouter le token à chaque requête
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('qogym_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les erreurs d'authentification
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.error('❌ Erreur 401:', error.response.data);
+      // Ne pas rediriger automatiquement, laisser App.js gérer ça
+      // On supprime juste les tokens invalides
+      localStorage.removeItem('qogym_token');
+      localStorage.removeItem('qogym_user');
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Services d'authentification
+export const authService = {
+  register: (email, username, password) => 
+    api.post('/auth', { action: 'register', email, username, password }),
+  
+  login: (email, password) => 
+    api.post('/auth', { action: 'login', email, password }),
+  
+  logout: () => 
+    api.post('/auth', { action: 'logout' }),
+  
+  verifyToken: () => 
+    api.get('/auth'),
+};
+
+// Services des séances
+export const sessionService = {
+  getAll: () => 
+    api.get('/sessions'),
+  
+  getById: (id) => 
+    api.get(`/sessions?id=${id}`),
+  
+  create: (sessionData) => 
+    api.post('/sessions', sessionData),
+  
+  update: (sessionData) => 
+    api.put('/sessions', sessionData),
+  
+  delete: (id) => 
+    api.delete(`/sessions?id=${id}`),
+};
+
+// Services des séances Qojim
+export const qojimService = {
+  getAll: () => 
+    api.get('/qojim-sessions'),
+  
+  addToLibrary: (sessionId) => 
+    api.post('/qojim-sessions', { action: 'add_to_library', session_id: sessionId }),
+  
+  removeFromLibrary: (sessionId) => 
+    api.delete(`/qojim-sessions?session_id=${sessionId}`),
+};
+
+// Services des entraînements
+export const workoutService = {
+  start: (sessionId) => 
+    api.post('/workouts', { action: 'start', session_id: sessionId }),
+  
+  recordSet: (workoutId, exerciseId, setNumber, weight, reps) => 
+    api.post('/workouts', { 
+      action: 'record_set', 
+      workout_id: workoutId, 
+      exercise_id: exerciseId, 
+      set_number: setNumber, 
+      weight, 
+      reps 
+    }),
+  
+  complete: (workoutId, notes) => 
+    api.post('/workouts', { action: 'complete', workout_id: workoutId, notes }),
+  
+  getHistory: (limit = 50) => 
+    api.get(`/workouts?history=1&limit=${limit}`),
+  
+  getById: (id) => 
+    api.get(`/workouts?id=${id}`),
+  
+  getStats: (exerciseId = null) => 
+    exerciseId 
+      ? api.get(`/workouts?stats=1&exercise_id=${exerciseId}`)
+      : api.get('/workouts?stats=1'),
+};
+
+// Services admin
+export const adminService = {
+  getStats: () => 
+    api.get('/admin?stats=1'),
+  
+  getUsers: () => 
+    api.get('/admin?users=1'),
+  
+  getSessionTypes: () => 
+    api.get('/admin?session_types=1'),
+  
+  createSessionType: (name) => 
+    api.post('/admin', { action: 'create_type', name }),
+  
+  updateSessionType: (typeId, name) => 
+    api.put('/admin', { action: 'update_type', type_id: typeId, name }),
+  
+  deleteSessionType: (typeId) => 
+    api.delete(`/admin?type_id=${typeId}`),
+  
+  getQojimSessions: () => 
+    api.get('/admin?qojim_sessions=1'),
+};
+
+export default api;

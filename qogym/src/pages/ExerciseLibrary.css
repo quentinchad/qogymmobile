@@ -1,0 +1,94 @@
+.exlib-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exlib-search {
+  margin: 0;
+}
+
+.exlib-sort-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.exlib-sort-tab {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exlib-sort-tab:hover {
+  border-color: var(--highlight-color);
+  color: var(--highlight-color);
+}
+
+.exlib-sort-tab.is-active {
+  background: var(--highlight-color);
+  border-color: var(--highlight-color);
+  color: white;
+}
+
+.exlib-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exlib-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.exlib-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.exlib-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.02rem;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exlib-item-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.exlib-item-orm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.exlib-item-orm-sub {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exlib-item-arrow {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}

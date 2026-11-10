@@ -1,0 +1,120 @@
+/* Bannière fixée en haut de la page, au-dessus du contenu. Disparaît au
+   clic sur "Plus tard" (sauf si MAJ obligatoire). */
+
+.update-banner {
+  position: sticky;
+  /* Décollée du haut pour ne pas être cachée par la barre de statut Android
+     (le StatusBar de l'app est translucide → les pixels du haut sont
+     occupés). On utilise env(safe-area-inset-top) pour respecter le notch
+     iPhone et les barres système, avec un fallback à 1rem. */
+  top: calc(env(safe-area-inset-top, 0px) + 2rem);
+  margin: 0 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(46, 204, 113, 0.06));
+  color: var(--text-primary, #dfeee4);
+  /* Animation d'entrée discrète */
+  animation: update-banner-slide-in 0.3s ease-out;
+  /* Petite ombre pour bien détacher du contenu derrière */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes update-banner-slide-in {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Variante "obligatoire" : fond plus marqué, pas de bouton "Plus tard" */
+.update-banner--mandatory {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.22), rgba(231, 76, 60, 0.08));
+  border-color: rgba(231, 76, 60, 0.5);
+}
+
+/* Variante "legacy" : pour les utilisateurs sur ancien APK ou Chrome Android
+   sans l'app — fond bleu pour différencier visuellement de la MAJ classique
+   et signaler que c'est un événement plus rare/important. */
+.update-banner--legacy {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.22), rgba(52, 152, 219, 0.08));
+  border-color: rgba(52, 152, 219, 0.5);
+}
+
+.update-banner-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.update-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.update-banner-text strong {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.update-banner-text small {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #9aa79a);
+  /* Un seul ligne max, ellipsis si trop long */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-banner-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.update-banner-btn {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.update-banner-btn--primary {
+  background: var(--success-color, #2ecc71);
+  color: #fff;
+}
+.update-banner-btn--primary:hover  { filter: brightness(1.05); }
+.update-banner-btn--primary:active { filter: brightness(0.95); }
+
+.update-banner-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary, #9aa79a);
+}
+.update-banner-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Sur mobile étroit : on cache les release notes pour gagner de la place */
+@media (max-width: 480px) {
+  .update-banner-text small { display: none; }
+  .update-banner-btn--ghost { display: none; }
+  .update-banner-btn--primary { padding: 0.4rem 0.5rem; }
+}
+.update-banner-btn:disabled { opacity: 0.6; cursor: default; }
+.update-banner-text small.update-banner-progress { display: block; white-space: normal; }
+.update-banner-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0.15rem 0 0;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}

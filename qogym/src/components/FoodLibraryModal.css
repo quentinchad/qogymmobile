@@ -1,0 +1,273 @@
+/* ============================================================
+   FoodLibraryModal
+============================================================ */
+
+.flm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: flm-fade 0.18s ease-out;
+}
+@keyframes flm-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.flm-modal {
+  background: var(--card-bg, #242a28);
+  color: var(--text-primary, #dfeee4);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  animation: flm-slide 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+  overflow: hidden;
+}
+@keyframes flm-slide {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 768px) {
+  .flm-overlay { padding: 0.5rem; padding-top: calc(2.25rem + env(safe-area-inset-top, 0px)); }
+  .flm-modal   { max-height: calc(100vh - 3rem); }
+}
+
+.flm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  flex-shrink: 0;
+}
+.flm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.flm-close {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 8px;
+  color: var(--text-secondary, #9aa79a);
+  cursor: pointer; font-size: 0.95rem;
+  transition: background 0.15s, color 0.15s;
+}
+.flm-close:hover { background: rgba(255,255,255,0.06); color: var(--text-primary, #dfeee4); }
+
+.flm-body {
+  padding: 1rem 1.1rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+/* ── Recherche ── */
+.flm-search {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 0.75rem;
+}
+.flm-search:focus { border-color: var(--success-color, #2ecc71); }
+
+.flm-add-btn { width: 100%; margin-bottom: 0.75rem; }
+
+/* ── Formulaire création/édition ── */
+.flm-form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.06));
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 1rem;
+}
+.flm-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+.flm-field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.flm-field--name { grid-column: 1 / -1; }
+.flm-field--qty  { flex: 1; }
+.flm-field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary, #9aa79a);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.flm-field input {
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+.flm-field input:focus { border-color: var(--success-color, #2ecc71); }
+.flm-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ── Liste ── */
+.flm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.flm-loading { display: flex; justify-content: center; padding: 2rem 0; }
+.flm-empty {
+  text-align: center;
+  color: var(--text-secondary, #9aa79a);
+  padding: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.flm-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.06));
+  border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.flm-item-main {
+  flex: 1;
+  min-width: 0;
+  cursor: default;
+}
+.flm-item-main[role="button"] { cursor: pointer; }
+.flm-item:has(.flm-item-main[role="button"]):hover {
+  border-color: var(--success-color, #2ecc71);
+  background: rgba(46, 204, 113, 0.06);
+}
+.flm-item-name {
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+  color: var(--text-primary, #dfeee4);
+}
+.flm-item-stats {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9aa79a);
+  font-variant-numeric: tabular-nums;
+}
+.flm-item-per { opacity: 0.6; margin-left: 0.25rem; }
+
+.flm-item-actions { display: flex; gap: 0.25rem; }
+.flm-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 8px;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.flm-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.flm-icon-btn--danger:hover {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.4);
+}
+
+/* ── Picker footer ── */
+.flm-picker-footer {
+  border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  padding: 0.85rem 1.1rem;
+  background: rgba(46, 204, 113, 0.05);
+  flex-shrink: 0;
+}
+.flm-picker-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.flm-picker-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .flm-picker-row .btn { flex: 1; }
+  .flm-picker-row .flm-field { flex-basis: 100%; }
+}
+
+/* ── Support des unités (pomme, oeuf, …) ── */
+/* Tag inline qui s'affiche à côté du nom de l'aliment dans la liste */
+.flm-item-unit-tag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--success-color, #2ecc71);
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid rgba(46, 204, 113, 0.25);
+  border-radius: 999px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Checkbox stylée façon "ligne entière" pour le toggle "à l'unité" */
+.flm-checkbox-field {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.55rem !important;
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.flm-checkbox-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--success-color, #2ecc71);
+  cursor: pointer;
+}
+.flm-checkbox-field span {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  color: var(--text-primary, #dfeee4) !important;
+  margin: 0 !important;
+}

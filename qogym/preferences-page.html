@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QoGym - Préférences</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+        
+        h2 {
+            color: #1a1a2e;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 24px;
+        }
+        
+        .setting-item {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .setting-label {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .setting-description {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 16px;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .radio-option:hover {
+            border-color: #e94560;
+        }
+        
+        .radio-option.selected {
+            border-color: #e94560;
+            background: #fff5f7;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .radio-option-content {
+            flex: 1;
+        }
+        
+        .radio-option-title {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+        
+        .radio-option-desc {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #e94560 0%, #c23654 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .user-info {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .user-info strong {
+            color: #1a1a2e;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        input[type="email"],
+        input[type="password"] {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginSection" class="container" style="display:none;">
+        <div class="card">
+            <h1>⚙️ Connexion</h1>
+            <p class="subtitle">Connectez-vous pour gérer vos préférences</p>
+            <div id="loginMessage"></div>
+            <div class="login-form">
+                <input type="email" id="loginEmail" placeholder="Email">
+                <input type="password" id="loginPassword" placeholder="Mot de passe">
+                <button class="btn" onclick="login()">Se connecter</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="mainSection" class="container" style="display:none;">
+        <div class="card">
+            <h1>⚙️ Préférences</h1>
+            <p class="subtitle">Gérez vos paramètres de confidentialité</p>
+            
+            <div class="user-info">
+                Connecté en tant que <strong id="currentUsername"></strong>
+            </div>
+            
+            <div id="message"></div>
+            
+            <div class="setting-item">
+                <label class="setting-label">🔒 Confidentialité des entraînements</label>
+                <p class="setting-description">
+                    Choisissez si vos entraînements terminés doivent être visibles par vos amis dans le feed.
+                </p>
+                
+                <div class="radio-group">
+                    <label class="radio-option" id="option-public">
+                        <input type="radio" name="privacy" value="public" onchange="selectOption('public')">
+                        <div class="radio-option-content">
+                            <div class="radio-option-title">🌍 Public</div>
+                            <div class="radio-option-desc">Vos amis voient vos entraînements dans le feed</div>
+                        </div>
+                    </label>
+                    
+                    <label class="radio-option" id="option-private">
+                        <input type="radio" name="privacy" value="private" onchange="selectOption('private')">
+                        <div class="radio-option-content">
+                            <div class="radio-option-title">🔒 Privé</div>
+                            <div class="radio-option-desc">Personne ne voit vos entraînements (sauf vous)</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="savePreferences()">Enregistrer les préférences</button>
+            
+            <button class="btn btn-secondary" onclick="logout()" style="margin-top: 12px;">Déconnexion</button>
+        </div>
+        
+        <div class="card">
+            <h2>💡 Informations</h2>
+            <div style="color: #2c3e50; line-height: 1.6;">
+                <p style="margin-bottom: 12px;">
+                    <strong>Public :</strong> Vos amis verront vos entraînements complétés dans leur feed. 
+                    Ils pourront voir les exercices, les performances, liker et commenter.
+                </p>
+                <p>
+                    <strong>Privé :</strong> Vos entraînements restent visibles uniquement pour vous. 
+                    Idéal si vous voulez garder vos performances confidentielles.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'https://qojim.com/qogym-api';
+        let token = localStorage.getItem('qogym_prefs_token');
+        let currentUser = null;
+        let currentPrivacy = 'public';
+        
+        if (token) {
+            checkAuth();
+        } else {
+            showLogin();
+        }
+        
+        function showLogin() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('mainSection').style.display = 'none';
+        }
+        
+        function showMain() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('mainSection').style.display = 'block';
+            loadPreferences();
+        }
+        
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/auth`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    document.getElementById('currentUsername').textContent = currentUser.username;
+                    showMain();
+                } else {
+                    showLogin();
+                }
+            } catch (error) {
+                showLogin();
+            }
+        }
+        
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('qogym_prefs_token', token);
+                    showMain();
+                } else {
+                    showMessage('loginMessage', data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('loginMessage', 'Erreur de connexion', 'error');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('qogym_prefs_token');
+            token = null;
+            showLogin();
+        }
+        
+        async function loadPreferences() {
+            try {
+                const response = await fetch(`${API_URL}/preferences`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.preferences) {
+                    currentPrivacy = data.preferences.default_workout_privacy || 'public';
+                    selectOption(currentPrivacy);
+                    document.querySelector(`input[value="${currentPrivacy}"]`).checked = true;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+        
+        function selectOption(value) {
+            document.getElementById('option-public').classList.remove('selected');
+            document.getElementById('option-private').classList.remove('selected');
+            document.getElementById(`option-${value}`).classList.add('selected');
+            currentPrivacy = value;
+        }
+        
+        async function savePreferences() {
+            try {
+                const response = await fetch(`${API_URL}/preferences`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ default_workout_privacy: currentPrivacy })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('message', 'Préférences enregistrées avec succès !', 'success');
+                } else {
+                    showMessage('message', data.error || 'Erreur', 'error');
+                }
+            } catch (error) {
+                showMessage('message', 'Erreur lors de l\'enregistrement', 'error');
+            }
+        }
+        
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => el.innerHTML = '', 5000);
+        }
+    </script>
+</body>
+</html>

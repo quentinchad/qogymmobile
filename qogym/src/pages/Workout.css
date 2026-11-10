@@ -1,0 +1,1279 @@
+/* Polices pour le chrono :
+   - Roboto Mono (monospace, largeurs de chiffres identiques) → le chrono
+     ne bouge plus quand les chiffres défilent.
+   - Orbitron (futuriste, look "sport") → fallback / utilisée pour la
+     mini-card où l'effet stylé prime sur la stabilité parfaite.
+   Le @import doit être en TOUT premier dans le fichier. */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Roboto+Mono:wght@500;700&display=swap');
+
+.workout-page {
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  /* Le margin-top compense la hauteur de la card timer (en position:fixed)
+     + son padding-top supplémentaire + la safe-area iOS. */
+  margin-top: calc(170px + env(safe-area-inset-top, 0px));
+}
+
+.workout-header {
+  margin-bottom: 1.5rem;
+}
+
+/* ── Bouton réduire (en haut à droite de la card timer) ──
+   L'entraînement continue de tourner en arrière-plan via la mini-card. */
+.workout-minimize-btn {
+  position: absolute;
+  /* Décalé pour respecter le padding-top + safe-area de la card timer. */
+  top: calc(8px + 20px + env(safe-area-inset-top, 0px));
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.10));
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.workout-minimize-btn:hover,
+.workout-minimize-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  outline: none;
+}
+.workout-minimize-btn:active {
+  transform: scale(0.94);
+}
+.workout-minimize-icon {
+  /* SVG hérite de currentColor (= color du bouton). 18px = bonne taille
+     pour un bouton de 36×36 (≈50% du bouton). */
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* ── Toggle du bip de fin de repos ──
+   Même style que le bouton réduire, positionné juste à sa gauche. */
+.workout-beep-toggle-btn {
+  position: absolute;
+  top: calc(8px + 20px + env(safe-area-inset-top, 0px));
+  right: 52px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.10));
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.workout-beep-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.workout-beep-toggle-btn:hover,
+.workout-beep-toggle-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.85);
+  outline: none;
+}
+.workout-beep-toggle-btn:active {
+  transform: scale(0.94);
+}
+.workout-beep-toggle-btn--on {
+  color: #ffd166;
+}
+.workout-beep-toggle-btn--on:hover,
+.workout-beep-toggle-btn--on:focus-visible {
+  color: #ffdd8c;
+}
+
+.workout-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.workout-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.workout-timer {
+  background: var(--secondary-color);
+  color: white;
+  text-align: center;
+  /* Plus d'espace en haut : la card est en position:fixed top:0, donc sans
+     padding supplémentaire le bouton réduire et l'anneau de progression
+     touchent la barre de statut du téléphone (ou la notch). +20px d'air en
+     haut + on respecte la safe-area iOS / Android. */
+  padding: calc(1.5rem + 20px + env(safe-area-inset-top, 0px)) 1.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.timer-display {
+  font-size: 3rem;
+  font-weight: 700;
+  /* Pour stabiliser la largeur des chiffres, on force une police monospace
+     en priorité (Roboto Mono) et Orbitron en fallback "stylé". Roboto Mono
+     garantit des largeurs identiques pour tous les chiffres → le chrono ne
+     "saute" pas de gauche à droite à chaque tick. */
+  font-family: 'Roboto Mono', 'Orbitron', 'Courier New', monospace;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+  text-shadow:
+    0 0 12px rgba(46, 204, 113, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  /* Force les chiffres tabulaires (largeur uniforme) — agit avec n'importe
+     quelle police OpenType qui supporte "tnum". */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  /* Effet "écran digital" subtil */
+  color: #eafff3;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.timer-controls .btn {
+  min-width: 80px;
+}
+
+/* ==============================
+   Rest progress ring (discret, en haut à gauche de la card timer)
+   — un petit anneau circulaire qui se vide au fur et à mesure du repos.
+   Beaucoup plus discret que l'ancien banner pour ne pas concurrencer
+   visuellement le chrono principal.
+============================== */
+.rest-ring {
+  position: absolute;
+  top: calc(8px + 20px + env(safe-area-inset-top, 0px));
+  left: 8px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 2;
+  /* Petite animation à l'apparition */
+  animation: ring-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes ring-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.rest-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Rotation pour que le départ du tracé soit en haut, sens horaire */
+  transform: rotate(-90deg);
+}
+
+/* Cercle de fond (track) — discret */
+.rest-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 3;
+}
+
+/* Cercle plein qui se vide. La circonférence d'un cercle de r=15.9 ≈ 100,
+   donc on travaille en valeurs 0–100 pour stroke-dashoffset (pratique). */
+.rest-ring-fill {
+  fill: none;
+  stroke: var(--success-color, #2ecc71);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: 100, 100;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.25s linear, stroke 0.3s;
+  /* Le glow est appliqué via le <filter> SVG dans Workout.js (cf.
+     restRingGlow) — `filter: drop-shadow` en CSS donne un halo carré
+     sur Chromium mobile sur les SVG à viewBox carré. */
+}
+
+/* Chiffre (secondes restantes) au centre */
+.rest-ring-label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* État "fini" : check vert + petite pulse */
+.rest-ring--finished .rest-ring-fill {
+  stroke: var(--success-color, #2ecc71);
+  /* Pas de filter:drop-shadow ici (cf. note ci-dessus). On pourrait
+     intensifier le glow via une variante SVG, mais ici la couleur pleine
+     suffit visuellement. */
+}
+.rest-ring--finished .rest-ring-label {
+  color: var(--success-color, #2ecc71);
+  font-size: 1.1rem;
+}
+.rest-ring--finished {
+  animation: ring-pulse 0.6s ease-out 0s 3;
+}
+@keyframes ring-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ==============================
+   Exercises
+============================== */
+.workout-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.workout-exercise {
+  background-color: var(--card-bg);
+}
+
+.exercise-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.exercise-details {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  /* Pas de margin-bottom : on est dans un flex row aligné (.exercise-meta-row).
+     Le spacing est géré par le margin-bottom du parent .exercise-meta-row. */
+}
+
+.last-performance {
+  background-color: var(--bg-color);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.sets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 4 columns: label | weight | reps | validate btn */
+.set-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 44px;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 0.25rem 0;
+  transition: background-color 0.3s ease;
+}
+
+.set-row--validated {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.set-row--validated .set-label {
+  color: #16a34a;
+}
+
+.set-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.set-input {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  width: 100%;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.set-input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+}
+
+.set-row--validated .set-input {
+  border-color: rgba(34, 197, 94, 0.4);
+  background-color: rgba(34, 197, 94, 0.04);
+}
+
+/* Validate button */
+.set-validate-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.set-validate-btn:hover {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.set-validate-btn--done {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: white;
+  font-weight: 700;
+  animation: pop-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.set-validate-btn--done:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0.6); opacity: 0.5; }
+  70%  { transform: scale(1.2); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ==============================
+   Actions
+============================== */
+.workout-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+  margin-top: 2rem;
+}
+
+.workout-actions .btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.125rem;
+}
+
+.workout-minimized {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  background: var(--secondary-color);
+  color: white;
+  padding: 1rem;
+  cursor: pointer;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 998;
+}
+
+.minimized-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-weight: 600;
+}
+
+/* ==============================
+   Responsive
+============================== */
+@media (max-width: 768px) {
+  .workout-page {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .set-row {
+    grid-template-columns: 55px 1fr 1fr 36px;
+    gap: 0.35rem;
+  }
+
+  .set-input {
+    padding: 0.35rem 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  .set-label {
+    font-size: 0.85rem;
+  }
+
+  .timer-display {
+    font-size: 2.5rem;
+  }
+
+  .set-validate-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .rest-countdown__time {
+    font-size: 1.2rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .workout-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .workout-actions .btn {
+    width: auto;
+    min-width: 200px;
+  }
+
+  .workout-minimized {
+    bottom: 0;
+  }
+}
+
+/* ==============================
+   Friends selector
+============================== */
+.friends-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.friend-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.friend-checkbox:hover {
+  background-color: var(--surface-secondary);
+}
+
+.friend-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.friend-checkbox span {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.no-friends-message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+  font-style: italic;
+}
+/* ══════════════════════════════════════════════
+   NOUVELLES CLASSES — modification en cours de séance
+══════════════════════════════════════════════ */
+
+/* ── Exercise card header ── */
+.exercise-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.exercise-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exercise-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exercise-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.exercise-meta-row {
+  display: flex;
+  align-items: baseline;          /* aligne sur la baseline du texte */
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+  margin-bottom: 1rem;            /* repris depuis l'ancien .exercise-details */
+}
+
+/* Badge "perso" pour les exercices ajoutés pendant la séance */
+.exercise-custom-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--secondary-color, #2e7d50);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* ── Remove exercise button ── */
+.exercise-remove-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+.exercise-remove-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* ── Drag handle ── */
+.drag-handle {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: grab;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: background 0.15s;
+  touch-action: none; /* critical for touch drag */
+  user-select: none;
+  margin-top: 2px;
+}
+.drag-handle:active { cursor: grabbing; background: var(--surface-secondary, rgba(0,0,0,0.05)); }
+
+/* ── Drag states ── */
+.exercise--dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+.exercise--drag-over {
+  outline: 2px dashed var(--secondary-color, #2e7d50);
+  outline-offset: 2px;
+}
+
+/* ── Rest badge (tappable) ── */
+.rest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color, #f5f5f5);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.rest-badge:hover {
+  border-color: var(--secondary-color, #2e7d50);
+  color: var(--secondary-color, #2e7d50);
+}
+.rest-badge--modified {
+  border-color: var(--secondary-color, #2e7d50);
+  color: var(--secondary-color, #2e7d50);
+  background: rgba(46, 125, 80, 0.08);
+}
+
+/* ── Rest inline edit ── */
+.rest-edit-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rest-edit-input {
+  width: 60px;
+  padding: 2px 6px;
+  border: 1px solid var(--secondary-color, #2e7d50);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+.rest-edit-input:focus { outline: none; }
+.rest-edit-unit {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.rest-edit-ok {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--secondary-color, #2e7d50);
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Add / Remove set buttons ── */
+.set-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.set-action-btn {
+  flex: 1;
+  padding: 0.4rem 0;
+  border-radius: 8px;
+  border: 1px dashed;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+}
+.set-action-btn--add {
+  border-color: var(--success-color, #2ecc71);
+  color: var(--success-color, #2ecc71);
+}
+.set-action-btn--add:hover {
+  background: rgba(46, 204, 113, 0.12);
+}
+.set-action-btn--remove {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.set-action-btn--remove:hover {
+  background: rgba(239, 68, 68, 0.07);
+}
+
+/* ── Add exercise button ── */
+.btn-add-exercise {
+  width: 100%;
+  padding: 0.85rem;
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.25rem;
+}
+.btn-add-exercise:hover {
+  border-color: var(--secondary-color, #2e7d50);
+  color: var(--secondary-color, #2e7d50);
+  background: rgba(46, 125, 80, 0.04);
+}
+
+/* ══════════════════════════════════════════════
+   Add Exercise Modal
+══════════════════════════════════════════════ */
+.add-exercise-modal {
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+.add-exercise-modal .modal-body {
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.add-exo-section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.add-exo-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.add-exo-search:focus { outline: none; border-color: var(--secondary-color, #2e7d50); }
+
+.add-exo-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.add-exo-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  gap: 0.5rem;
+}
+.add-exo-result-item:last-child { border-bottom: none; }
+.add-exo-result-item:hover { background: var(--surface-secondary, rgba(0,0,0,0.04)); }
+
+.add-exo-name {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.add-exo-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.add-exo-empty {
+  padding: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.add-exo-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+.add-exo-divider::before,
+.add-exo-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.add-exo-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.add-exo-sets-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.add-exo-sets-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.add-exo-sets-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stepper-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--bg-color, #f5f5f5);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.stepper-btn:hover { background: var(--border-color); }
+.stepper-val {
+  width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  line-height: 36px;
+}
+
+/* ══════════════════════════════════════════════
+   REORDER OVERLAY — long press → mode réorganisation
+══════════════════════════════════════════════ */
+
+/* Fond semi-transparent qui bloque le reste */
+.reorder-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: reorder-fade-in 0.2s ease;
+}
+
+@keyframes reorder-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Panel qui monte du bas (style bottom sheet) */
+.reorder-panel {
+  width: 100%;
+  max-width: 560px;
+  background: var(--card-bg, #fff);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 env(safe-area-inset-bottom, 16px);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+  animation: reorder-slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes reorder-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Handle visuel en haut du panel */
+.reorder-panel::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-color, #ddd);
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.reorder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 4px;
+  flex-shrink: 0;
+}
+
+.reorder-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reorder-done-btn {
+  background: var(--secondary-color, #2e7d50);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.reorder-done-btn:active { opacity: 0.8; }
+
+.reorder-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 0 16px 8px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Liste scrollable */
+.reorder-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Chaque ligne compacte */
+.reorder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg-color, #f6f6f6);
+  border: 1.5px solid transparent;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y; /* laisse la liste défiler verticalement au doigt ;
+                           seule .reorder-grip capture le geste de drag */
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reorder-row:active { cursor: grabbing; }
+
+.reorder-row--dragging {
+  z-index: 5;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  background: var(--card-bg, #fff);
+  transform: scale(1.02);
+}
+
+.reorder-row--target {
+  border-color: var(--secondary-color, #2e7d50);
+  background: rgba(46, 125, 80, 0.08);
+}
+
+/* Grip icon — seule zone qui démarre le drag, pour laisser le reste
+   de la ligne défiler normalement au doigt */
+.reorder-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, opacity 0.15s, color 0.15s;
+}
+.reorder-grip:active {
+  cursor: grabbing;
+  opacity: 1;
+  color: var(--secondary-color, #2e7d50);
+  background: rgba(46, 125, 80, 0.12);
+}
+
+/* Numéro */
+.reorder-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--secondary-color, #2e7d50);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Nom */
+.reorder-name {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hint visuel sur les cartes normales quand on approche du long press */
+.workout-exercise {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* ── Hamburger button — ouvre le panneau de réorganisation ── */
+.reorder-trigger-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--bg-color, #f5f5f5);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  touch-action: manipulation;
+}
+.reorder-trigger-btn:hover,
+.reorder-trigger-btn:active {
+  border-color: var(--secondary-color, #2e7d50);
+  color: var(--secondary-color, #2e7d50);
+  background: rgba(46, 125, 80, 0.08);
+}
+/* ══════════════════════════════════════════════
+   SUPERSETS — décor visuel pendant l'entraînement
+   (cards groupées avec bande verte + connecteur entre)
+══════════════════════════════════════════════ */
+
+/* En-tête au-dessus du premier exo d'un superset */
+.superset-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--success-color, #2ecc71);
+  padding: 0.4rem 0.6rem;
+  margin-bottom: -0.5rem;       /* "colle" l'en-tête à la card du dessous */
+  background: rgba(46, 204, 113, 0.06);
+  border: 1px solid rgba(46, 204, 113, 0.25);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+}
+
+.superset-header-icon {
+  font-size: 0.9rem;
+}
+
+.superset-header-hint {
+  margin-left: auto;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Cards d'un superset : bordure verte + fond légèrement teinté */
+.workout-exercise--in-superset {
+  border-left: 3px solid var(--success-color, #2ecc71);
+  background-color: rgba(46, 204, 113, 0.03);
+}
+
+.workout-exercise--superset-first {
+  /* Pas de margin-top pour coller à l'en-tête superset */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Connecteur entre deux cards d'un superset */
+.superset-connector {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--success-color, #2ecc71);
+  text-transform: uppercase;
+  padding: 0.3rem 0;
+  margin-top: -0.5rem;          /* compense le gap entre cards */
+  margin-bottom: -0.5rem;
+  position: relative;
+}
+.superset-connector::before,
+.superset-connector::after {
+  content: '';
+  display: inline-block;
+  width: 30px;
+  height: 1px;
+  background: var(--success-color, #2ecc71);
+  vertical-align: middle;
+  margin: 0 0.4rem;
+  opacity: 0.5;
+}
+
+/* Lettre A/B/C dans le superset, version "intégrée au header de la card" */
+.exercise-superset-letter--workout {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--success-color, #2ecc71);
+  color: #0f2a22;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
+/* Boutons "lier"/"délier" en superset, à côté du badge de repos */
+.superset-toggle-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  touch-action: manipulation;
+}
+.superset-toggle-btn--link:hover,
+.superset-toggle-btn--link:active {
+  border-color: var(--success-color, #2ecc71);
+  color: var(--success-color, #2ecc71);
+  background: rgba(46, 204, 113, 0.08);
+}
+.superset-toggle-btn--unlink:hover,
+.superset-toggle-btn--unlink:active {
+  border-color: var(--danger-color, #e74c3c);
+  color: var(--danger-color, #e74c3c);
+  background: rgba(231, 76, 60, 0.08);
+}
+
+/* ══════════════════════════════════════════════
+   OVERLAY "Enregistrement…" — affiché pendant l'appel
+   atomique `complete`. Bloque tout, rassure l'utilisateur
+   (ne ferme pas l'application), disparaît dès que la
+   sauvegarde est confirmée côté serveur.
+══════════════════════════════════════════════ */
+
+.workout-saving-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: workout-saving-fadein 0.12s ease-out;
+}
+
+@keyframes workout-saving-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.workout-saving-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 220px;
+  max-width: 90vw;
+}
+
+.workout-saving-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(46, 204, 113, 0.2);
+  border-top-color: var(--success-color, #2ecc71);
+  border-radius: 50%;
+  animation: workout-saving-spin 0.9s linear infinite;
+}
+
+@keyframes workout-saving-spin {
+  to { transform: rotate(360deg); }
+}
+
+.workout-saving-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  letter-spacing: 0.02em;
+}
+
+.workout-saving-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  font-style: italic;
+  text-align: center;
+}

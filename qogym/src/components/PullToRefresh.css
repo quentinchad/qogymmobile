@@ -1,0 +1,55 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   PullToRefresh — indicateur fixe "tire pour rafraîchir" (app native only)
+
+   L'indicateur est en position: fixed tout en haut de l'écran. Il ne déplace
+   AUCUN contenu (pas de transform sur un wrapper) → les position:fixed de
+   l'app (.page-header) restent intacts.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.ptr-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0; /* piloté en inline-style = distance du pull */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  /* Au-dessus du .page-header (z-index 1000) pour rester visible pendant
+     la tirette, mais l'indicateur n'intercepte aucun pointer-event. */
+  z-index: 1200;
+  background: linear-gradient(
+    180deg,
+    var(--bg-color, #1a1d1c) 0%,
+    rgba(26, 29, 28, 0) 100%
+  );
+  transition: opacity 0.15s ease;
+}
+
+.ptr-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--success-color, #2ecc71);
+  will-change: transform, opacity;
+}
+
+.ptr-spinner-track {
+  stroke: var(--border-color, rgba(255, 255, 255, 0.12));
+}
+
+.ptr-spinner-arc {
+  stroke: var(--success-color, #2ecc71);
+}
+
+/* Quand le refresh est armé/déclenché : rotation continue jusqu'au reload. */
+.ptr-overlay--refreshing .ptr-spinner {
+  animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

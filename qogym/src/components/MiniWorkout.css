@@ -1,0 +1,157 @@
+/* Police chrono partagée avec Workout.css. Le browser dédoublonne les
+   imports identiques, donc pas de surcoût. */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&display=swap');
+
+/* ============================================================
+   MiniWorkout — pop-up flottant en bas
+   ============================================================ */
+
+.mini-workout {
+  position: fixed;
+  /* Juste au-dessus de la BottomNav (≈70px) sur mobile */
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 1rem);
+  max-width: 480px;
+  z-index: 900;          /* en dessous des modales/toasts (10000+) */
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.85rem 0.6rem;
+
+  background: linear-gradient(135deg, #1a3d2b, #254d37);
+  border: 1px solid rgba(46, 204, 113, 0.5);
+  border-radius: 14px;
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary, #dfeee4);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  animation: miniWorkoutSlideUp 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.mini-workout--pressing {
+  transform: translateX(-50%) scale(0.98);
+  filter: brightness(1.05);
+}
+
+@keyframes miniWorkoutSlideUp {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Petit "drag handle" visuel pour suggérer le swipe */
+.mini-workout-grip {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mini-workout-handle {
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.mini-workout-body {
+  flex: 1;
+  min-width: 0;
+  margin-top: 4px; /* pour laisser respirer le grip */
+}
+
+.mini-workout-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary, #dfeee4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-workout-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mini-workout-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-family: 'Orbitron', 'Courier New', monospace;
+  letter-spacing: 1px;
+  color: var(--success-color, #2ecc71);
+}
+
+.mini-workout-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-color, #2ecc71);
+  box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+  animation: miniWorkoutPulse 1.4s ease-out infinite;
+}
+@keyframes miniWorkoutPulse {
+  0%   { box-shadow: 0 0 0 0    rgba(46, 204, 113, 0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);   }
+  100% { box-shadow: 0 0 0 0    rgba(46, 204, 113, 0);   }
+}
+
+.mini-workout-paused {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mini-workout-stats {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mini-workout-arrow {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--success-color, #2ecc71);
+  margin-left: auto;
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+/* Sur desktop : la BottomNav est en sidebar, donc pas de marge bas, on
+   met la mini-card en bas-droite légèrement décalée */
+@media (min-width: 768px) {
+  .mini-workout {
+    bottom: 1rem;
+    left: auto;
+    right: 1rem;
+    transform: none;
+    max-width: 380px;
+    width: auto;
+  }
+  .mini-workout--pressing {
+    transform: scale(0.98);
+  }
+  @keyframes miniWorkoutSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}

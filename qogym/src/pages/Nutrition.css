@@ -1,0 +1,487 @@
+/* ============================================================
+   Nutrition page
+============================================================ */
+
+.nutrition-page { padding-bottom: 2rem; }
+
+/* ── Date navigation ── */
+.nut-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+}
+.nut-date-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 50%;
+  color: var(--text-primary, #dfeee4);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.nut-date-btn:hover:not(:disabled) {
+  background: rgba(46, 204, 113, 0.12);
+  color: var(--success-color, #2ecc71);
+}
+.nut-date-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.nut-date-label {
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+.nut-date-name {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-transform: capitalize;
+  color: var(--text-primary, #dfeee4);
+}
+.nut-date-today {
+  background: transparent; border: 0; padding: 0;
+  color: var(--success-color, #2ecc71);
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ── Summary ── */
+.nut-summary {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.1rem 1.25rem;
+}
+@media (max-width: 600px) {
+  .nut-summary { flex-direction: column; align-items: stretch; gap: 1rem; }
+}
+
+/* Anneau */
+.nut-ring-wrap {
+  position: relative;
+  width: 130px; height: 130px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.nut-ring {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.nut-ring-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 3;
+}
+.nut-ring-fill {
+  fill: none;
+  stroke: var(--success-color, #2ecc71);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100, 100;
+  transition: stroke-dashoffset 0.4s ease;
+  /* Note : on n'utilise PAS filter: drop-shadow ici. Sur Chromium mobile,
+     drop-shadow appliqué à un <circle> dans un SVG ayant un viewBox 0 0 36 36
+     produit un halo carré (la bounding box du SVG, pas du tracé). Le glow
+     est désormais appliqué via un <filter> SVG natif (voir Nutrition.js)
+     qui suit correctement le tracé du cercle. */
+}
+.nut-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.nut-ring-kcal {
+  font-size: 1.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #dfeee4);
+  line-height: 1;
+}
+.nut-ring-target {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9aa79a);
+  margin-top: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-no-target {
+  flex-shrink: 0;
+  text-align: center;
+}
+.nut-kcal-big {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #dfeee4);
+}
+.nut-no-target-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9aa79a);
+  margin-top: 0.4rem;
+  max-width: 220px;
+  margin-left: auto; margin-right: auto;
+}
+
+/* Macros */
+.nut-macros {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.nut-macro-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 0.2rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.nut-macro-head strong {
+  color: var(--text-primary, #dfeee4);
+  font-variant-numeric: tabular-nums;
+}
+.nut-macro-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.nut-macro-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.nut-macro-fill--prot  { background: #3498db; }   /* bleu protéines */
+.nut-macro-fill--carbs { background: #f39c12; }   /* orange glucides */
+.nut-macro-fill--fat   { background: #e74c3c; }   /* rouge lipides */
+
+/* Cible affichée à côté du gramme consommé, en plus discret. */
+.nut-macro-target {
+  color: var(--text-secondary, #9aa79a);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Vue invité (non-connecté) ── */
+/* Variante plus aérée du bloc summary quand on n'a pas de données à afficher.
+   Le visuel central remplace l'anneau par une icône d'accueil. */
+.nut-summary--guest {
+  justify-content: center;
+}
+.nut-summary--guest .nut-kcal-big {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+/* Carte CTA "Se connecter" sous le visuel d'accueil — boutons côte-à-côte
+   en desktop, empilés en mobile. */
+.nut-guest-cta {
+  text-align: center;
+}
+.nut-guest-cta-text {
+  color: var(--text-secondary, #9aa79a);
+  margin-bottom: 1rem;
+}
+.nut-guest-cta-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.nut-guest-cta-actions .btn { min-width: 180px; }
+@media (max-width: 480px) {
+  .nut-guest-cta-actions { flex-direction: column; }
+  .nut-guest-cta-actions .btn { width: 100%; min-width: 0; }
+}
+
+/* ── Boutons d'ajout ── */
+.nut-add-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.nut-add-row .btn { flex: 1; min-width: 160px; }
+
+/* ── Entries ── */
+.nut-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.nut-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.06));
+  border-radius: 10px;
+}
+.nut-entry-main { flex: 1; min-width: 0; }
+.nut-entry-name {
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+  color: var(--text-primary, #dfeee4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nut-entry-stats {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9aa79a);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 0.2rem;
+}
+.nut-entry-qty {
+  display: flex;
+}
+.nut-qty-btn {
+  background: rgba(46, 204, 113, 0.10);
+  border: 1px solid rgba(46, 204, 113, 0.25);
+  color: var(--success-color, #2ecc71);
+  border-radius: 999px;
+  padding: 0.18rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nut-qty-btn:hover { background: rgba(46, 204, 113, 0.18); }
+
+.nut-entry-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+.nut-entry-edit input {
+  width: 80px;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--success-color, #2ecc71);
+  border-radius: 6px;
+  color: var(--text-primary, #dfeee4);
+  font-size: 0.9rem;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-entry-delete {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.nut-entry-delete:hover {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.4);
+}
+
+/* ============================================================
+   Saisie rapide (ad-hoc) — overlay + modale
+============================================================ */
+
+.adh-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .adh-overlay { padding: 0.5rem; padding-top: calc(2.25rem + env(safe-area-inset-top, 0px)); }
+}
+
+.adh-modal {
+  background: var(--card-bg, #242a28);
+  color: var(--text-primary, #dfeee4);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+}
+.adh-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+}
+.adh-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.adh-close {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 8px;
+  color: var(--text-secondary, #9aa79a);
+  cursor: pointer;
+}
+.adh-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+.adh-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #9aa79a);
+  cursor: pointer;
+}
+.adh-checkbox input { width: 18px; height: 18px; cursor: pointer; }
+.adh-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+@media (max-width: 480px) {
+  .adh-actions .btn { flex: 1; }
+}
+/* ── Repas (groupes d'aliments dépliables) ── */
+.nut-meal {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.06));
+  border-radius: 10px;
+  overflow: hidden;
+}
+.nut-meal.is-open { border-color: rgba(46, 204, 113, 0.25); }
+.nut-meal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem 0.55rem 0;
+}
+.nut-meal-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0 0.3rem 0.85rem;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.nut-meal-chevron {
+  width: 1rem;
+  color: var(--success-color, #2ecc71);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.nut-meal-main { display: flex; flex-direction: column; min-width: 0; }
+.nut-meal-name {
+  font-weight: 700;
+  color: var(--text-primary, #dfeee4);
+}
+.nut-meal-stats {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9aa79a);
+  font-variant-numeric: tabular-nums;
+}
+.nut-meal-body {
+  padding: 0.2rem 0.6rem 0.7rem;
+  border-top: 1px solid var(--border-color, rgba(255,255,255,0.06));
+}
+.nut-meal-body .nut-entries { margin-top: 0.6rem; }
+.nut-meal-empty {
+  margin: 0.7rem 0 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.nut-meal-add {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+}
+.nut-meal-add .btn { flex: 1; min-width: 120px; }
+
+/* ── Actions d'une entrée (déplacer + supprimer) ── */
+.nut-entry-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.nut-entry-move {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.10));
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-secondary, #9aa79a);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.nut-entry-move:hover {
+  background: rgba(46, 204, 113, 0.12);
+  border-color: rgba(46, 204, 113, 0.4);
+  color: var(--success-color, #2ecc71);
+}
+
+/* ── Feuille "Déplacer dans un repas" ── */
+.nut-move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.8rem 1rem 1rem;
+}
+.nut-move-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  color: var(--text-primary, #dfeee4);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+}
+.nut-move-option:hover:not(:disabled) { background: rgba(46, 204, 113, 0.12); }
+.nut-move-option:disabled { opacity: 0.5; cursor: default; }
+.nut-move-option--new {
+  color: var(--success-color, #2ecc71);
+  border-color: rgba(46, 204, 113, 0.3);
+}
+.nut-move-hint {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9aa79a);
+}

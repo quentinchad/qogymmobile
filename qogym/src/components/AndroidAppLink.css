@@ -1,0 +1,56 @@
+/* AndroidAppLink — petit bloc cliquable au look "card discrète". */
+
+.android-app-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text-primary, #dfeee4);
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+.android-app-link:hover {
+  background: rgba(46, 204, 113, 0.08);
+  border-color: rgba(46, 204, 113, 0.35);
+}
+.android-app-link:active { transform: translateY(1px); }
+
+.android-app-link-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.android-app-link-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.android-app-link-text strong {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary, #dfeee4);
+}
+.android-app-link-text small {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.android-app-link-chevron {
+  color: var(--text-secondary, #9aa79a);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* Variante "auth" : sous les formulaires Login/Register, marge top pour
+   décoller du bloc précédent. */
+.android-app-link--auth {
+  margin-top: 1rem;
+}
+
+/* Variante "card" : utilisée dans Profile, déjà dans une .card parente. */
+.android-app-link--card {
+  margin-top: 0.25rem;
+}

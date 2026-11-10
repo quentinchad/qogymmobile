@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+  /* Supprime le rectangle bleu translucide que Chrome Android affiche au
+     tap sur les éléments interactifs (boutons, liens, role=button…).
+     `transparent` désactive l'effet partout. Ça n'enlève PAS les :hover
+     ni :active classiques — uniquement le flash bleu natif. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Empêche aussi la "selection bleue" qui apparaît parfois sur un long-press
+   sur les boutons et icônes (sélection de texte involontaire). On la garde
+   active sur les zones de contenu (paragraphes, articles, etc.) où la
+   sélection est utile à l'utilisateur. */
+button, a, [role="button"], .nav-item, nav, header {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "QoGym",
+    "slug": "qogym",
+    "owner": "qojim",
+    "version": "2.0.3",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "qogym",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b1322",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.qojim.qogym"
+    },
+    "android": {
+      "package": "com.qojim.qogym",
+      "versionCode": 13,
+      "adaptiveIcon": {
+        "backgroundColor": "#0d1626",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "softwareKeyboardLayoutMode": "resize",
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#0b1322"
+        }
+      ],
+      "expo-image",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "QoGym a besoin d'accéder à tes photos pour ta photo de profil et les images de séances.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "buildArchs": [
+              "arm64-v8a",
+              "armeabi-v7a"
+            ]
+          }
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bd4e9dc4-bd86-4d3a-8310-8d3b2e6e4b5b"
+      }
+    }
+  }
+}

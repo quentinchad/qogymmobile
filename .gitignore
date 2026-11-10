@@ -1,0 +1,12 @@
+# Dépendances / builds
+node_modules/
+qogym/build/
+qogym/build2/
+*.zip
+
+# Secrets : NE JAMAIS committer (identifiants BDD, JWT)
+qogym/qogym-api/config.php
+qogym/qogym-api_old/
+.env
+.env.*
+**/.claude/settings.local.json

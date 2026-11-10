@@ -1,0 +1,262 @@
+.exercise-params {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.exercise-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-color);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.exercise-item:hover {
+  background-color: #1c201f;
+}
+
+.exercise-grip {
+  cursor: grab;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.exercise-item:active .exercise-grip {
+  cursor: grabbing;
+}
+
+.exercise-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.exercise-info strong {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .exercise-params {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Trigger button for the rest-time wheel picker (looks like a form input) */
+.rest-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  cursor: pointer;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.rest-picker-trigger:hover {
+  border-color: var(--success-color, #2ecc71);
+}
+
+/* ══════════════════════════════════════════════
+   SUPERSETS — décor visuel pour les exos groupés
+   (CreateSession + SessionDetail partagent ces classes)
+══════════════════════════════════════════════ */
+
+.superset-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--success-color, #2ecc71);
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.superset-header-icon {
+  font-size: 0.85rem;
+}
+
+/* Bande verte sur le bord gauche pour souligner l'appartenance au superset */
+.exercise-item--in-superset {
+  border-left: 3px solid var(--success-color, #2ecc71);
+  padding-left: 0.75rem;
+  background-color: rgba(46, 204, 113, 0.04);
+}
+.exercise-item--in-superset:hover {
+  background-color: rgba(46, 204, 113, 0.07);
+}
+
+.exercise-item--superset-first {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+.exercise-item--superset-last {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* Lettre A/B/C qui désigne l'exo dans le superset */
+.exercise-superset-letter {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--success-color, #2ecc71);
+  color: #0f2a22;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Connecteur visuel entre deux exos d'un superset */
+.superset-connector {
+  font-size: 0.7rem;
+  color: var(--success-color, #2ecc71);
+  text-align: center;
+  padding: 0.25rem 0;
+  margin-top: -0.25rem;
+  margin-bottom: 0.1rem;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Container des actions à droite d'un exercise-item */
+.exercise-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Boutons icônes lier/délier */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.btn-icon:hover {
+  border-color: var(--success-color, #2ecc71);
+  color: var(--success-color, #2ecc71);
+  background: rgba(46, 204, 113, 0.08);
+}
+.btn-icon--unlink:hover {
+  border-color: var(--danger-color, #e74c3c);
+  color: var(--danger-color, #e74c3c);
+  background: rgba(231, 76, 60, 0.08);
+}
+/* ── Autocomplétion du nom d'exercice (bibliothèque perso + wger) ── */
+.exercise-name-search {
+  position: relative;
+}
+.exercise-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.exercise-suggestions-group + .exercise-suggestions-group {
+  border-top: 1px solid var(--border-color);
+}
+.exercise-suggestions-group-label {
+  padding: 6px 12px 2px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.exercise-suggestions-loading {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.exercise-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.exercise-suggestion-item:hover,
+.exercise-suggestion-item:focus-visible {
+  background: var(--accent-color);
+  outline: none;
+}
+.exercise-suggestion-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exercise-suggestion-meta {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
