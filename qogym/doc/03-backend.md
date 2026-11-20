@@ -30,6 +30,7 @@ qogym-api/
 ├── user_profile.php         ← profil public d'un autre utilisateur
 │
 ├── nutrition.php            ← bibliothèque + journal alimentaire
+├── food_search.php          ← recherche de produits réels (proxy Open Food Facts + cache 24 h)
 ├── preferences.php          ← objectifs kcal/macros, privacy, PDP
 ├── weight.php               ← pesées quotidiennes (upsert/suppression) + objectif de poids
 ├── monthly_reports.php      ← génération + consultation rapports mensuels

@@ -26,6 +26,14 @@ import './FoodLibraryModal.css';
  *   en cochant "À l'unité ?" dans le formulaire et en renseignant le label
  *   et le poids moyen d'une unité. Côté picker, la saisie se fait alors en
  *   nombre d'unités plutôt qu'en grammes.
+ *
+ * Recherche de vrais produits (Open Food Facts) :
+ *   Depuis le champ de recherche, "Chercher dans les produits du commerce"
+ *   interroge qogym-api/food_search.php. Les résultats s'affichent avec leur
+ *   photo ; un clic pré-remplit le formulaire (nom, marque, macros / 100g).
+ *   La photo n'est PAS stockée : elle ne sert qu'à choisir le bon produit.
+ *   En mode picker, l'aliment créé est directement sélectionné pour saisir
+ *   la quantité.
  */
 const emptyDraft = () => ({
   name: '',
@@ -48,6 +56,15 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
   const [pickedItem, setPickedItem]       = useState(null);
   const [pickedQuantity, setPickedQuantity] = useState('');
 
+  // Recherche produits du commerce (Open Food Facts)
+  const [offQuery, setOffQuery]       = useState('');    // dernière recherche lancée
+  const [offResults, setOffResults]   = useState(null);  // null = pas de recherche affichée
+  const [offLoading, setOffLoading]   = useState(false);
+  const [offPage, setOffPage]         = useState(1);
+  const [offHasMore, setOffHasMore]   = useState(false);
+  const [offError, setOffError]       = useState(null);
+  const [sourceProduct, setSourceProduct] = useState(null); // produit OFF à l'origine du formulaire
+
   const { showToast } = useToast();
   const { confirm }   = useConfirm();
 
@@ -57,15 +74,19 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
     // Reset des states transitoires à chaque ouverture
     setSearch(''); setEditingId(null); setAdding(false); setDraft(emptyDraft());
     setPickedItem(null); setPickedQuantity('');
+    setOffQuery(''); setOffResults(null); setOffError(null); setSourceProduct(null);
   }, [open]);
 
   const loadLibrary = async () => {
     setLoading(true);
     try {
       const res = await nutritionService.getLibrary();
-      setItems(res.data?.items || []);
+      const list = res.data?.items || [];
+      setItems(list);
+      return list;
     } catch (err) {
       showToast('Erreur lors du chargement de la bibliothèque', 'error');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -77,14 +98,67 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
     return items.filter(it => it.name.toLowerCase().includes(s));
   }, [items, search]);
 
+  // ── Recherche produits du commerce ──
+  const runProductSearch = async (page = 1) => {
+    const q = (page === 1 ? search : offQuery).trim();
+    if (q.length < 2) { showToast('Tape au moins 2 caractères', 'error'); return; }
+    setOffLoading(true);
+    setOffError(null);
+    if (page === 1) { setOffResults([]); setOffQuery(q); }
+    try {
+      const res = await nutritionService.searchProducts(q, page);
+      const products = res.data?.products || [];
+      setOffResults(prev => (page === 1 ? products : [...(prev || []), ...products]));
+      setOffHasMore(!!res.data?.has_more);
+      setOffPage(page);
+    } catch (err) {
+      setOffError(err.response?.data?.error || 'Recherche impossible pour le moment');
+    } finally {
+      setOffLoading(false);
+    }
+  };
+
+  const closeProductSearch = () => {
+    setOffResults(null); setOffError(null); setOffQuery('');
+  };
+
+  // Nom proposé : "Nutella (Ferrero)" — on n'ajoute pas la marque si elle
+  // figure déjà dans le nom du produit.
+  const productDisplayName = (p) => {
+    if (!p.brand || p.name.toLowerCase().includes(p.brand.toLowerCase())) return p.name;
+    return `${p.name} (${p.brand})`;
+  };
+
+  const selectProduct = (p) => {
+    setEditingId(null);
+    setAdding(true);
+    setPickedItem(null);
+    setSourceProduct(p);
+    setDraft({
+      name: productDisplayName(p).slice(0, 120),
+      use_unit: false,
+      // Portion indiquée sur l'emballage : pré-remplie si l'utilisateur
+      // choisit de compter à l'unité.
+      unit_label: p.serving_g ? 'portion' : '',
+      grams_per_unit: p.serving_g ? String(p.serving_g) : '',
+      kcal_per_100g:    String(p.kcal_per_100g ?? ''),
+      protein_per_100g: String(p.protein_per_100g ?? ''),
+      carbs_per_100g:   String(p.carbs_per_100g ?? ''),
+      fat_per_100g:     String(p.fat_per_100g ?? ''),
+    });
+    setOffResults(null);
+  };
+
   // ── Création / édition ──
   const startAdding = () => {
     setAdding(true);
     setEditingId(null);
+    setSourceProduct(null);
     setDraft(emptyDraft());
   };
   const startEditing = (item) => {
     setAdding(false);
+    setSourceProduct(null);
     setEditingId(item.id);
     setDraft({
       name: item.name,
@@ -98,7 +172,7 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
     });
   };
   const cancelEdit = () => {
-    setAdding(false); setEditingId(null); setDraft(emptyDraft());
+    setAdding(false); setEditingId(null); setDraft(emptyDraft()); setSourceProduct(null);
   };
 
   const saveDraft = async () => {
@@ -123,16 +197,34 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
     if (!payload.name) { showToast('Nom requis', 'error'); return; }
     setSaving(true);
     try {
+      let createdId = null;
       if (editingId) {
         await nutritionService.updateLibraryItem(editingId, payload);
         showToast('Aliment modifié', 'success');
       } else {
-        await nutritionService.createLibraryItem(payload);
+        const r = await nutritionService.createLibraryItem(payload);
+        createdId = r.data?.id != null ? Number(r.data.id) : null;
         showToast('Aliment ajouté à la bibliothèque', 'success');
       }
-      await loadLibrary();
+      const list = await loadLibrary();
       cancelEdit();
+      // Mode picker : l'aliment fraîchement créé est sélectionné directement
+      // pour saisir la quantité.
+      if (mode === 'picker' && createdId != null && list) {
+        const created = list.find(i => Number(i.id) === createdId);
+        if (created) { setPickedItem(created); setPickedQuantity(''); }
+      }
     } catch (err) {
+      // Déjà présent dans la biblio (même nom) : en picker on le sélectionne.
+      if (err.response?.status === 409 && mode === 'picker' && !editingId) {
+        const existing = items.find(i => i.name.trim().toLowerCase() === payload.name.toLowerCase());
+        if (existing) {
+          cancelEdit();
+          setPickedItem(existing); setPickedQuantity('');
+          showToast('Déjà dans ta bibliothèque, sélectionné', 'info');
+          return;
+        }
+      }
       showToast(err.response?.data?.error || 'Erreur lors de la sauvegarde', 'error');
     } finally {
       setSaving(false);
@@ -199,10 +291,73 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
           <input
             type="text"
             className="flm-search"
-            placeholder="Rechercher dans la bibliothèque…"
+            placeholder="Rechercher un aliment ou un produit (ex. nutella)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && search.trim().length >= 2) {
+                e.preventDefault();
+                runProductSearch(1);
+              }
+            }}
           />
+
+          {/* Recherche dans les produits du commerce (Open Food Facts) */}
+          {!adding && !editingId && search.trim().length >= 2 && offResults === null && (
+            <button
+              type="button"
+              className="btn btn-outline flm-off-btn"
+              onClick={() => runProductSearch(1)}
+            >
+              🔎 Chercher « {search.trim()} » dans les produits du commerce
+            </button>
+          )}
+
+          {offResults !== null && (
+            <div className="flm-off">
+              <div className="flm-off-head">
+                <span className="flm-off-title">Produits du commerce · « {offQuery} »</span>
+                <button type="button" className="flm-icon-btn" onClick={closeProductSearch} title="Fermer la recherche">✕</button>
+              </div>
+              {offError && <div className="flm-empty">{offError}</div>}
+              {!offError && !offLoading && offResults.length === 0 && (
+                <div className="flm-empty">Aucun produit trouvé. Essaie un autre nom ou le code-barres.</div>
+              )}
+              <div className="flm-off-list">
+                {offResults.map((p, idx) => (
+                  <button
+                    key={`${p.code}-${idx}`}
+                    type="button"
+                    className="flm-off-item"
+                    onClick={() => selectProduct(p)}
+                  >
+                    <div className="flm-off-thumb">
+                      {p.image
+                        ? <img src={p.image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        : <span>🍽️</span>}
+                    </div>
+                    <div className="flm-off-info">
+                      <div className="flm-item-name">{p.name}</div>
+                      <div className="flm-off-meta">
+                        {[p.brand, p.quantity].filter(Boolean).join(' · ')}
+                      </div>
+                      <div className="flm-item-stats">
+                        {Math.round(p.kcal_per_100g)} kcal · P {p.protein_per_100g}g · G {p.carbs_per_100g}g · L {p.fat_per_100g}g
+                        <span className="flm-item-per">/ 100g</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {offLoading && <div className="flm-loading"><div className="spinner" /></div>}
+              {!offLoading && offHasMore && (
+                <button type="button" className="btn btn-secondary btn-small flm-off-more" onClick={() => runProductSearch(offPage + 1)}>
+                  Plus de résultats
+                </button>
+              )}
+              <div className="flm-off-credit">Données Open Food Facts — vérifie les valeurs avant d'ajouter.</div>
+            </div>
+          )}
 
           {/* Bouton "+ Nouvel aliment" (mode manage uniquement, pour éviter
               de surcharger le picker) */}
@@ -215,6 +370,22 @@ const FoodLibraryModal = ({ open, mode = 'manage', onClose, onPick }) => {
           {/* Formulaire de création/édition */}
           {(adding || editingId) && (
             <div className="flm-form">
+              {sourceProduct && (
+                <div className="flm-form-source">
+                  <div className="flm-off-thumb flm-off-thumb--lg">
+                    {sourceProduct.image
+                      ? <img src={sourceProduct.image} alt="" referrerPolicy="no-referrer" />
+                      : <span>🍽️</span>}
+                  </div>
+                  <div className="flm-off-info">
+                    <div className="flm-item-name">{sourceProduct.name}</div>
+                    <div className="flm-off-meta">
+                      {[sourceProduct.brand, sourceProduct.quantity].filter(Boolean).join(' · ')}
+                    </div>
+                    <div className="flm-off-meta">Valeurs pré-remplies, modifiables avant l'ajout.</div>
+                  </div>
+                </div>
+              )}
               <div className="flm-form-grid">
                 <label className="flm-field flm-field--name">
                   <span>Nom</span>

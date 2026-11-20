@@ -434,6 +434,11 @@ export const nutritionService = {
   deleteLibraryItem: (id) =>
     api.delete(`/nutrition.php?action=library&id=${id}`),
 
+  // Recherche de vrais produits (Open Food Facts via qogym-api/food_search.php).
+  // q = texte ("nutella") ou code-barres. Renvoie { products, has_more }.
+  searchProducts: (q, page = 1) =>
+    api.get(`/food_search.php?q=${encodeURIComponent(q)}&page=${page}`),
+
   // ── Entrées du jour ──
   getEntries: (date /* YYYY-MM-DD */) =>
     api.get(`/nutrition.php?action=entries&date=${encodeURIComponent(date)}`),

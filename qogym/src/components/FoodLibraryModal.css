@@ -271,3 +271,99 @@
   color: var(--text-primary, #dfeee4) !important;
   margin: 0 !important;
 }
+
+/* ── Recherche produits du commerce (Open Food Facts) ── */
+.flm-off-btn {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  white-space: normal;
+  text-align: center;
+}
+.flm-off {
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+.flm-off-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.flm-off-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary, #9aa79a);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flm-off-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.flm-off-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--bg-color, #0d1f17);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.06));
+  border-radius: 10px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s;
+}
+.flm-off-item:hover { border-color: var(--success-color, #2ecc71); }
+.flm-off-thumb {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+.flm-off-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.flm-off-thumb--lg { width: 72px; height: 72px; }
+.flm-off-info { flex: 1; min-width: 0; }
+.flm-off-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #9aa79a);
+  margin: 0.1rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flm-off-more { display: block; margin: 0.6rem auto 0; }
+.flm-off-credit {
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary, #9aa79a);
+  text-align: center;
+}
+.flm-form-source {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.06));
+}
