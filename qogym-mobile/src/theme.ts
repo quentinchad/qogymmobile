@@ -26,6 +26,10 @@ export const colors = {
   dangerSoft: 'rgba(239,83,80,0.14)',
   warning: '#f5a524',
 
+  // Appli partenaire Recomp
+  recomp: '#2ec4b6',
+  recompSoft: 'rgba(46,196,182,0.15)',
+
   protein: '#5aa9ff',
   carbs: '#f5a524',
   fat: '#e86bb4',

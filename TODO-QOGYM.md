@@ -135,6 +135,14 @@ Ensuite, côté QoGym :
 But : afficher les séances Recomp dans l'appli. **À faire quand la liaison est validée en réel**
 (§5), ou avant si on garde l'affichage inactif tant que `external_status` vaut `"disabled"`.
 
+> **FAIT dans l'APK 2.1.0 (versionCode 15)**, en même temps que la carte « Poids » du profil
+> (`components/WeightCard.tsx`, API `weight.php`) et l'annonce du partenariat affichée une fois
+> (`components/Partner.tsx`, clé `qg_announce_recomp_v1`). L'appli envoie toujours
+> `include_external=1` et s'adapte au backend : curseur `next_before` si la réponse contient
+> `external_status`, sinon pagination par `offset` comme avant. Elle marche donc avant et après le
+> déploiement du §4.2. Reste à tester avec de vraies séances Recomp (§5).
+> L'historique de son propre profil passe maintenant par `user_profile.php?history=1` (au lieu de `workouts.php?history=1`).
+
 ### Fichiers concernés (`qogym-mobile/src/`)
 
 | Fichier | Changement |

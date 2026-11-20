@@ -10,6 +10,7 @@ import { colors } from '@/theme';
 import { tap, IconName } from '@/components/ui';
 import { MiniWorkout } from '@/workout/MiniWorkout';
 import { UpdateBanner } from '@/components/UpdateBanner';
+import { PartnerAnnouncement } from '@/components/Partner';
 import FeedScreen from '@/screens/FeedScreen';
 import SessionsScreen from '@/screens/SessionsScreen';
 import NutritionScreen from '@/screens/NutritionScreen';
@@ -94,6 +95,9 @@ export default function Main() {
       </PagerView>
 
       <MiniWorkout visible={focused} />
+
+      {/* Annonce du partenariat Recomp : une seule fois, après la mise à jour */}
+      <PartnerAnnouncement enabled={focused} />
 
       <View style={[styles.tabbar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         {TABS.map((t, i) => {

@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { errMsg, feedApi, sessionApi, workoutApi } from '@/lib/api';
+import { errMsg, feedApi, isExternalId, sessionApi, workoutApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { store } from '@/lib/storage';
 import { fmtDateTime, fmtDuration, fmtRelative, isTrue } from '@/lib/format';
@@ -18,9 +18,11 @@ import { Sheet } from '@/components/Sheet';
 import { MenuItem } from '@/screens/SessionsScreen';
 import { useConfirm, useToast } from '@/components/Feedback';
 import { useStartWorkout } from '@/workout/useStartWorkout';
+import { isRecomp, RecompBadge } from '@/components/Partner';
 
 export default function WorkoutDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // Séance Recomp : id texte "recomp:…" + owner_id (id QoGym du propriétaire)
+  const { id, owner_id } = useLocalSearchParams<{ id: string; owner_id?: string }>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -29,7 +31,7 @@ export default function WorkoutDetail() {
   const [w, setW] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState('');
-  const [replyTo, setReplyTo] = useState<{ id: number; username: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: number | string; username: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [menu, setMenu] = useState(false);
   const [editNotes, setEditNotes] = useState(false);
@@ -39,7 +41,7 @@ export default function WorkoutDetail() {
 
   const load = async () => {
     try {
-      const r = await feedApi.detail(Number(id));
+      const r = await feedApi.detail(isExternalId(id) ? id : Number(id), owner_id);
       setW(r.workout || r);
     } catch (e) {
       setError(errMsg(e, 'Erreur de chargement'));
@@ -50,7 +52,10 @@ export default function WorkoutDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const isOwn = !!(w && user && Number(w.user_id) === Number(user.id));
+  const recomp = isRecomp(w) || isExternalId(id);
+  const ownerId = w?.user_id ?? owner_id;
+  // Une séance Recomp se gère dans Recomp : pas de notes, suppression ni relance ici.
+  const isOwn = !recomp && !!(w && user && Number(w.user_id) === Number(user.id));
 
   const fetchSession = async (sid: any) => {
     if (!sid) return null;
@@ -118,7 +123,7 @@ export default function WorkoutDetail() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const liked = isTrue(w.user_has_liked);
     setW({ ...w, user_has_liked: !liked, likes_count: Number(w.likes_count) + (liked ? -1 : 1) });
-    feedApi.toggleLike(w.id).catch(() => load());
+    feedApi.toggleLike(w.id, ownerId).catch(() => load());
   };
 
   const send = async () => {
@@ -126,7 +131,7 @@ export default function WorkoutDetail() {
     if (!text || sending) return;
     setSending(true);
     try {
-      await feedApi.comment(w.id, text, replyTo?.id ?? null);
+      await feedApi.comment(w.id, text, replyTo?.id ?? null, ownerId);
       setComment('');
       setReplyTo(null);
       await load();
@@ -137,7 +142,7 @@ export default function WorkoutDetail() {
     }
   };
 
-  const deleteComment = async (cid: number) => {
+  const deleteComment = async (cid: number | string) => {
     if (!(await confirm({ title: 'Supprimer ce commentaire ?', confirmLabel: 'Supprimer', variant: 'danger' }))) return;
     try {
       await feedApi.deleteComment(cid);
@@ -181,7 +186,7 @@ export default function WorkoutDetail() {
   const img = sessionImageUrl(w.session_image);
   const liked = isTrue(w.user_has_liked);
 
-  const renderComment = (c: any, rootId: number, isReply: boolean) => (
+  const renderComment = (c: any, rootId: number | string, isReply: boolean) => (
     <View key={c.id} style={[styles.comment, isReply && styles.reply]}>
       <Avatar name={c.username} pdp={c.user_pdp} size={isReply ? 28 : 34} onPress={() => router.push(`/user/${c.user_id}`)} />
       <View style={{ flex: 1 }}>
@@ -212,7 +217,10 @@ export default function WorkoutDetail() {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScreenHeader title={w.session_name || 'Entraînement'} right={<IconBtn name="ellipsis-vertical" onPress={() => setMenu(true)} label="Plus d'actions" />} />
+      <ScreenHeader
+        title={w.session_name || 'Entraînement'}
+        right={recomp ? undefined : <IconBtn name="ellipsis-vertical" onPress={() => setMenu(true)} label="Plus d'actions" />}
+      />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Pressable style={styles.author} onPress={() => router.push(`/user/${w.user_id}`)}>
           <Avatar name={w.user_username} pdp={w.user_pdp} size={44} />
@@ -220,6 +228,7 @@ export default function WorkoutDetail() {
             <Text style={styles.cUser}>{w.user_username}</Text>
             <Text style={styles.cTime}>{fmtDateTime(w.completed_at)}</Text>
           </View>
+          {recomp && <RecompBadge />}
         </Pressable>
 
         {img && <Image source={{ uri: img }} style={styles.img} contentFit="cover" cachePolicy="memory-disk" />}
@@ -227,10 +236,16 @@ export default function WorkoutDetail() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {!!w.session_type_name && <Pill label={w.session_type_name} />}
           {w.duration_seconds > 0 && <Pill label={fmtDuration(w.duration_seconds)} icon="time-outline" />}
-          {!!w.participants && <Pill label={`Avec ${w.participants}`} icon="people" color={colors.purple} bg={colors.purpleSoft} />}
+          {!w.duration_seconds && Number(w.duration_min) > 0 && <Pill label={fmtDuration(Number(w.duration_min) * 60)} icon="time-outline" />}
+          {Number(w.volume_kg) > 0 && <Pill label={`${Math.round(Number(w.volume_kg))} kg soulevés`} icon="barbell-outline" />}
+          {!!w.participants && !(Array.isArray(w.participants) && w.participants.length === 0) && <Pill label={`Avec ${w.participants}`} icon="people" color={colors.purple} bg={colors.purpleSoft} />}
         </View>
 
-        <Button title="Lancer cette séance" icon="play" onPress={launch} loading={launching} />
+        {recomp ? (
+          <T v="small">Séance faite sur Recomp, l'appli partenaire de QoGym.</T>
+        ) : (
+          <Button title="Lancer cette séance" icon="play" onPress={launch} loading={launching} />
+        )}
 
         {/* Exercices */}
         {(w.exercises || []).length > 0 && (
@@ -259,9 +274,12 @@ export default function WorkoutDetail() {
                         </View>
                         <View style={styles.sets}>
                           {(ex.completed_sets || []).map((s: any, k: number) => (
-                            <Text key={k} style={styles.setChip}>
-                              {s.weight ? `${s.weight} kg × ` : ''}
+                            <Text key={k} style={[styles.setChip, s.type === 'warmup' && styles.setWarmup]}>
+                              {s.type === 'warmup' ? 'Éch. ' : ''}
+                              {s.weight ? `${s.weight} kg × ` : isTrue(s.bodyweight) ? 'PDC × ' : ''}
                               {s.reps}
+                              {s.reps_right != null && s.reps_right !== s.reps ? `/${s.reps_right}` : ''}
+                              {s.rpe != null && s.rpe !== '' ? ` @${s.rpe}` : ''}
                             </Text>
                           ))}
                         </View>
@@ -391,6 +409,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     overflow: 'hidden',
   },
+  setWarmup: { color: colors.textDim, backgroundColor: colors.surface3 },
   notes: { color: colors.text, fontStyle: 'italic', lineHeight: 21 },
   comment: { flexDirection: 'row', gap: 10, paddingVertical: 8 },
   reply: { marginLeft: 40 },

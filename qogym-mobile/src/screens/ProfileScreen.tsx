@@ -3,7 +3,7 @@ import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { authApi, errMsg, prefsApi, reportApi, workoutApi } from '@/lib/api';
+import { authApi, errMsg, nextPage, PageCursor, prefsApi, reportApi, userApi, workoutApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { store, useCached } from '@/lib/storage';
 import { useUpdate } from '@/lib/update';
@@ -12,6 +12,8 @@ import { colors, QOJIM, radius } from '@/theme';
 import { Avatar, Button, Card, IconBtn, Input, Loader, Pill, SectionTitle, TabTitle, T, tap } from '@/components/ui';
 import { Sheet } from '@/components/Sheet';
 import { useConfirm, useToast } from '@/components/Feedback';
+import { WeightCard } from '@/components/WeightCard';
+import { isRecomp, LinkedAppsCard, RecompBadge, workoutDetailHref } from '@/components/Partner';
 import type { TabScreenProps } from '@/app/index';
 
 const PAGE = 10;
@@ -22,14 +24,17 @@ export default function ProfileScreen({ active }: TabScreenProps) {
   const confirm = useConfirm();
   const upd = useUpdate();
 
-  const main = useCached('profile_main', async () => {
+  // Historique via user_profile.php (include_external=1) : inclut aussi
+  // les séances faites sur Recomp si le compte est relié.
+  const main = useCached(user ? `profile_main_v2:${user.id}` : null, async () => {
     const [stats, hist, prefs, reports] = await Promise.all([
       workoutApi.stats().then((r) => r.stats || null),
-      workoutApi.history(PAGE, 0),
+      userApi.moreHistory(user!.id, PAGE, { offset: 0 }),
       prefsApi.get().then((r) => r.preferences || {}),
       reportApi.list().then((r) => r.reports || []).catch(() => []),
     ]);
-    return { stats, history: hist.history || [], hasMore: !!hist.has_more, prefs, reports };
+    const history = (hist.history || []) as any[];
+    return { stats, history, cursor: nextPage(hist, history, history.length, PAGE) as PageCursor, prefs, reports };
   });
   const data = main.data;
   const [loadingMore, setLoadingMore] = useState(false);
@@ -44,15 +49,16 @@ export default function ProfileScreen({ active }: TabScreenProps) {
   }, [active]);
 
   const loadMore = async () => {
-    if (!data?.hasMore || loadingMore) return;
+    if (!data?.cursor?.hasMore || loadingMore || !user) return;
     setLoadingMore(true);
     try {
-      const r = await workoutApi.history(PAGE, data.history.length);
+      const r = await userApi.moreHistory(user.id, PAGE, data.cursor);
       const more = r.history || [];
       main.setData((d) => {
         if (!d) return d;
         const seen = new Set(d.history.map((w: any) => w.id));
-        return { ...d, history: [...d.history, ...more.filter((w: any) => !seen.has(w.id))], hasMore: !!r.has_more };
+        const all = [...d.history, ...more.filter((w: any) => !seen.has(w.id))];
+        return { ...d, history: all, cursor: nextPage(r, more, all.length, PAGE) };
       });
     } catch (e) {
       toast(errMsg(e), 'error');
@@ -159,6 +165,9 @@ export default function ProfileScreen({ active }: TabScreenProps) {
         </View>
       )}
 
+      {/* Poids */}
+      <WeightCard active={active} />
+
       {/* Raccourcis */}
       <View style={{ gap: 8 }}>
         <Row icon="library-outline" label="Mes exercices & progression" onPress={() => router.push(`/exercises/${user.id}`)} />
@@ -193,6 +202,9 @@ export default function ProfileScreen({ active }: TabScreenProps) {
         </View>
       </Card>
 
+      {/* Applis partenaires reliées (Recomp) */}
+      <LinkedAppsCard active={active} />
+
       {/* Rapports mensuels */}
       <Card style={{ gap: 6 }}>
         <SectionTitle>Rapports mensuels</SectionTitle>
@@ -219,19 +231,27 @@ export default function ProfileScreen({ active }: TabScreenProps) {
           <T v="small">Aucun entraînement terminé pour le moment. Lance ta première séance !</T>
         ) : (
           data!.history.map((w: any) => (
-            <Pressable key={w.id} style={styles.hist} onPress={() => router.push(`/workout-detail/${w.id}`)} onLongPress={() => removeWorkout(w.id)}>
+            <Pressable
+              key={w.id}
+              style={styles.hist}
+              onPress={() => router.push(workoutDetailHref(w, user.id) as any)}
+              onLongPress={isRecomp(w) ? undefined : () => removeWorkout(w.id)}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }} numberOfLines={1}>
                   {w.session_name}
                 </Text>
-                <T v="small">{fmtDateTime(w.completed_at)}</T>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <T v="small">{fmtDateTime(w.completed_at)}</T>
+                  {isRecomp(w) && <RecompBadge small />}
+                </View>
               </View>
               <Pill label={`${w.total_sets ?? 0} séries`} />
               <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
             </Pressable>
           ))
         )}
-        {data?.hasMore && <Button title="Charger plus" variant="ghost" small onPress={loadMore} loading={loadingMore} />}
+        {data?.cursor?.hasMore && <Button title="Charger plus" variant="ghost" small onPress={loadMore} loading={loadingMore} />}
         {(data?.history || []).length > 0 && <T v="tiny" style={{ textAlign: 'center', marginTop: 4 }}>Appui long sur un entraînement pour le supprimer</T>}
       </Card>
 

@@ -1,7 +1,7 @@
 {
-  "latestVersionCode": 13,
-  "latestVersion": "2.0.3",
+  "latestVersionCode": 15,
+  "latestVersion": "2.1.0",
   "downloadUrl": "https://qojim.com/qogym.apk",
   "minRequiredVersionCode": 1,
-  "releaseNotes": "Chrono et repos toujours visibles pendant l'entraînement. Bip de repos comme avant (décompte 5 → 1), même hors de l'app. Suggestions d'exercices."
+  "releaseNotes": "Nouveau : suivi du poids dans le Profil (pesée du jour, corrections, courbes et objectif). Partenariat avec Recomp. Correction des champs kg / reps pendant l'entraînement."
 }

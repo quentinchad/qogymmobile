@@ -226,6 +226,10 @@ const SetRow = memo(function SetRow({
  * Tant qu'il n'a pas le focus, le champ est donc « transparent » au toucher :
  * c'est un Pressable qui reçoit le doigt (la liste peut le lui reprendre pour
  * scroller) et qui donne le focus au champ sur un simple tap.
+ * `collapsable={false}` est indispensable : sans lui, le View passe de
+ * « non aplatissable » (pointerEvents none) à « aplati » (auto) au focus ;
+ * l'EditText est alors déplacé côté natif, perd le focus, et Android le donne
+ * au premier champ visible (kg de la 1re série).
  */
 function SetField({ inputRef, style, ...props }: TextInputProps & { inputRef?: React.RefObject<TextInputInstance | null> }) {
   const own = useRef<TextInputInstance>(null);
@@ -233,7 +237,7 @@ function SetField({ inputRef, style, ...props }: TextInputProps & { inputRef?: R
   const [focused, setFocused] = useState(false);
   return (
     <Pressable style={{ flex: 1 }} onPress={() => ref.current?.focus()} disabled={focused}>
-      <View pointerEvents={focused ? 'auto' : 'none'}>
+      <View collapsable={false} pointerEvents={focused ? 'auto' : 'none'}>
         <TextInput
           ref={ref}
           {...props}

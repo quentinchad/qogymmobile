@@ -4,20 +4,24 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { feedApi, friendsApi, reportApi } from '@/lib/api';
+import { feedApi, friendsApi, nextPage, PageCursor, reportApi } from '@/lib/api';
 import { useCached, store } from '@/lib/storage';
 import { fmtDateTime, isTrue, MONTH_NAMES } from '@/lib/format';
 import { colors, radius, sessionImageUrl } from '@/theme';
 import { Avatar, Button, Card, Empty, IconBtn, Loader, TabTitle } from '@/components/ui';
 import { FriendsSheet } from '@/components/FriendsSheet';
+import { isRecomp, RecompBadge, RecompBanner, workoutDetailHref } from '@/components/Partner';
 import type { TabScreenProps } from '@/app/index';
 
 const LIMIT = 10;
 
 export default function FeedScreen({ active, goToTab }: TabScreenProps) {
-  const { data, setData, loading, refreshing, refresh, refreshIfStale } = useCached('feed', async () => {
-    const r = await feedApi.feed(LIMIT, 0);
-    return { workouts: (r.workouts || []) as any[], hasMore: (r.workouts || []).length === LIMIT };
+  // Fil fusionné QoGym + Recomp. `cursor` : page suivante (curseur `before`
+  // si le backend gère la fusion, sinon `offset` comme avant).
+  const { data, setData, loading, refreshing, refresh, refreshIfStale } = useCached('feed_v2', async () => {
+    const r = await feedApi.feed(LIMIT);
+    const workouts = (r.workouts || []) as any[];
+    return { workouts, cursor: nextPage(r, workouts, workouts.length, LIMIT) as PageCursor };
   });
   const [loadingMore, setLoadingMore] = useState(false);
   const [pendingFriends, setPendingFriends] = useState(0);
@@ -50,14 +54,15 @@ export default function FeedScreen({ active, goToTab }: TabScreenProps) {
   const workouts = data?.workouts || [];
 
   const loadMore = async () => {
-    if (loadingMore || !data?.hasMore) return;
+    if (loadingMore || !data?.cursor?.hasMore) return;
     setLoadingMore(true);
     try {
-      const r = await feedApi.feed(LIMIT, workouts.length);
-      const more = r.workouts || [];
+      const r = await feedApi.feed(LIMIT, data.cursor);
+      const more = (r.workouts || []) as any[];
       setData((d) => {
         const seen = new Set((d?.workouts || []).map((w: any) => w.id));
-        return { workouts: [...(d?.workouts || []), ...more.filter((w: any) => !seen.has(w.id))], hasMore: more.length === LIMIT };
+        const all = [...(d?.workouts || []), ...more.filter((w: any) => !seen.has(w.id))];
+        return { workouts: all, cursor: nextPage(r, more, all.length, LIMIT) };
       });
     } catch {
     } finally {
@@ -80,7 +85,7 @@ export default function FeedScreen({ active, goToTab }: TabScreenProps) {
             }
           : d,
       );
-      feedApi.toggleLike(w.id).catch(() => refresh());
+      feedApi.toggleLike(w.id, w.user_id).catch(() => refresh());
     },
     [setData, refresh],
   );
@@ -163,8 +168,10 @@ export default function FeedScreen({ active, goToTab }: TabScreenProps) {
 const FeedCard = memo(function FeedCard({ w, onLike }: { w: any; onLike: (w: any) => void }) {
   const img = sessionImageUrl(w.session_image);
   const liked = isTrue(w.user_has_liked);
+  const recomp = isRecomp(w);
+  const open = () => router.push(workoutDetailHref(w) as any);
   return (
-    <Card style={{ padding: 0 }} onPress={() => router.push(`/workout-detail/${w.id}`)}>
+    <Card style={{ padding: 0 }} onPress={open}>
       <View style={styles.cardHead}>
         <Avatar name={w.user_username} pdp={w.user_pdp} size={42} onPress={() => router.push(`/user/${w.user_id}`)} />
         <View style={{ flex: 1 }}>
@@ -173,11 +180,24 @@ const FeedCard = memo(function FeedCard({ w, onLike }: { w: any; onLike: (w: any
           </Text>
           <Text style={styles.time}>{fmtDateTime(w.completed_at)}</Text>
         </View>
+        {recomp && <RecompBadge />}
       </View>
+      {recomp && !img && <RecompBanner />}
       {img && <Image source={{ uri: img }} style={styles.img} contentFit="cover" cachePolicy="memory-disk" transition={150} recyclingKey={String(w.id)} />}
       <View style={{ paddingHorizontal: 14, paddingTop: 12, gap: 4 }}>
         <Text style={styles.session}>{w.session_name}</Text>
         {!!w.session_type_name && <Text style={styles.type}>{w.session_type_name}</Text>}
+        {recomp && (Number(w.total_sets) > 0 || Number(w.duration_min) > 0) && (
+          <Text style={styles.type}>
+            {[
+              Number(w.total_sets) > 0 ? `${w.total_sets} séries` : null,
+              Number(w.volume_kg) > 0 ? `${Math.round(Number(w.volume_kg))} kg soulevés` : null,
+              Number(w.duration_min) > 0 ? `${w.duration_min} min` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+        )}
         {!!w.participants && (
           <Text style={styles.type}>
             <Ionicons name="people" size={12} color={colors.textDim} /> Avec {w.participants}
@@ -194,7 +214,7 @@ const FeedCard = memo(function FeedCard({ w, onLike }: { w: any; onLike: (w: any
           <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? colors.danger : colors.textDim} />
           <Text style={[styles.actionText, liked && { color: colors.danger }]}>{w.likes_count}</Text>
         </Pressable>
-        <Pressable onPress={() => router.push(`/workout-detail/${w.id}`)} hitSlop={8} style={styles.action}>
+        <Pressable onPress={open} hitSlop={8} style={styles.action}>
           <Ionicons name="chatbubble-outline" size={20} color={colors.textDim} />
           {w.comments_count != null && <Text style={styles.actionText}>{w.comments_count}</Text>}
         </Pressable>

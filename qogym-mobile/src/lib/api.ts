@@ -85,6 +85,9 @@ export const authApi = {
   changeUsername: (username: string) => post('/auth.php', { action: 'change_username', username }),
   resendVerification: (email: string) => post('/auth.php', { action: 'resend_verification', email }),
   requestPasswordReset: (email: string) => post('/password_reset', { action: 'request_reset', email }),
+  // Applis partenaires reliées au compte (Recomp…). Ancien backend : pas de champ `partners`.
+  partners: () => get('/auth.php?partners=1'),
+  revokePartner: (app: string) => post('/auth.php', { action: 'revoke_partner', app }),
 };
 
 // ── Séances ─────────────────────────────────────────────────────────────
@@ -142,14 +145,51 @@ export const workoutApi = {
 };
 
 // ── Feed ────────────────────────────────────────────────────────────────
+/**
+ * Séances de l'appli partenaire Recomp : id texte "recomp:…", commentaires
+ * "ext:N". Le backend a besoin de l'id QoGym du propriétaire (`owner_id`).
+ * Les séances QoGym gardent leurs ids numériques et le comportement d'avant.
+ */
+export type WorkoutId = number | string;
+export const isExternalId = (id: any) => typeof id === 'string' && id.startsWith('recomp:');
+const ownerParam = (id: WorkoutId, ownerId?: number | string | null) =>
+  isExternalId(id) && ownerId != null ? { owner_id: Number(ownerId) } : {};
+
+/**
+ * `include_external=1` : fil fusionné QoGym + Recomp, paginé par curseur
+ * `before` (réponse avec `next_before` / `external_status`). Un backend pas
+ * encore à jour ignore le paramètre et pagine par `offset` comme avant :
+ * les écrans gèrent les deux (voir `nextPage`).
+ */
 export const feedApi = {
-  feed: (limit = 10, offset = 0) => get(`/feed.php?feed=1&limit=${limit}&offset=${offset}`),
-  detail: (workoutId: number) => get(`/feed.php?workout_id=${workoutId}`),
-  toggleLike: (workout_id: number) => post('/feed.php', { action: 'like', workout_id }),
-  comment: (workout_id: number, comment: string, parent_comment_id?: number | null) =>
-    post('/feed.php', { action: 'comment', workout_id, comment, ...(parent_comment_id ? { parent_comment_id } : {}) }),
-  deleteComment: (id: number) => del(`/feed.php?comment_id=${id}`),
+  feed: (limit = 10, cursor: { offset?: number; before?: string | null } = {}) =>
+    get(
+      `/feed.php?feed=1&limit=${limit}&include_external=1${cursor.before ? `&before=${q(cursor.before)}` : `&offset=${cursor.offset ?? 0}`}`,
+    ),
+  detail: (workoutId: WorkoutId, ownerId?: number | string | null) =>
+    get(`/feed.php?workout_id=${q(String(workoutId))}${isExternalId(workoutId) && ownerId != null ? `&owner_id=${ownerId}` : ''}`),
+  toggleLike: (workout_id: WorkoutId, ownerId?: number | string | null) =>
+    post('/feed.php', { action: 'like', workout_id, ...ownerParam(workout_id, ownerId) }),
+  comment: (workout_id: WorkoutId, comment: string, parent_comment_id?: number | string | null, ownerId?: number | string | null) =>
+    post('/feed.php', {
+      action: 'comment',
+      workout_id,
+      comment,
+      ...ownerParam(workout_id, ownerId),
+      ...(parent_comment_id ? { parent_comment_id } : {}),
+    }),
+  deleteComment: (id: number | string) => del(`/feed.php?comment_id=${q(String(id))}`),
 };
+
+/**
+ * Page suivante d'une liste paginée : curseur `next_before` si le backend
+ * gère la fusion Recomp, sinon `offset` (ancien backend).
+ */
+export type PageCursor = { before?: string | null; offset?: number; hasMore: boolean };
+export const nextPage = (r: any, items: any[], loadedCount: number, limit: number): PageCursor =>
+  r && 'external_status' in r
+    ? { before: r.next_before ?? null, hasMore: !!r.next_before }
+    : { offset: loadedCount, hasMore: r?.has_more !== undefined ? !!r.has_more : items.length === limit };
 
 export const friendsApi = {
   search: (term: string) => get(`/friends.php?search=${q(term)}`),
@@ -163,9 +203,19 @@ export const friendsApi = {
 };
 
 export const userApi = {
-  profile: (userId: number | string) => get(`/user_profile.php?user_id=${userId}`),
-  moreHistory: (userId: number | string, limit: number, offset: number) =>
-    get(`/user_profile.php?user_id=${userId}&history=1&limit=${limit}&offset=${offset}`),
+  profile: (userId: number | string) => get(`/user_profile.php?user_id=${userId}&include_external=1`),
+  moreHistory: (userId: number | string, limit: number, cursor: { offset?: number; before?: string | null }) =>
+    get(
+      `/user_profile.php?user_id=${userId}&history=1&limit=${limit}&include_external=1${cursor.before ? `&before=${q(cursor.before)}` : `&offset=${cursor.offset ?? 0}`}`,
+    ),
+};
+
+// ── Poids (une pesée par jour, upsert) — voir qogym-api/weight.php ───────
+export const weightApi = {
+  list: () => get('/weight.php?action=list'),
+  save: (day: string, weight: number) => post('/weight.php', { day, weight }),
+  remove: (day: string) => del(`/weight.php?day=${q(day)}`),
+  setGoal: (goal: number | null) => put('/weight.php', { goal }),
 };
 
 export const exerciseApi = {
