@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useToast } from '../components/Toast';
 import WorkoutDetailModal from '../components/WorkoutDetailModal';
 import StepsSection from '../components/StepsSection';
+import WeightSection from '../components/WeightSection';
 import AndroidAppLink from '../components/AndroidAppLink';
 import './Profile.css';
 
@@ -358,6 +359,9 @@ const Profile = ({ user, onLogout, onUserUpdate }) => {
           </div>
         </div>
       </div>
+
+      {/* Poids : saisie quotidienne (+ jours passés), correction, courbes */}
+      <WeightSection />
 
       {/* Photo de profil */}
       <div className="card mb-2">

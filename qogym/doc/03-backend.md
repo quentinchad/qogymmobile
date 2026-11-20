@@ -31,6 +31,7 @@ qogym-api/
 │
 ├── nutrition.php            ← bibliothèque + journal alimentaire
 ├── preferences.php          ← objectifs kcal/macros, privacy, PDP
+├── weight.php               ← pesées quotidiennes (upsert/suppression) + objectif de poids
 ├── monthly_reports.php      ← génération + consultation rapports mensuels
 ├── send_reminders.php       ← cron qui envoie des rappels par email
 │
@@ -160,6 +161,12 @@ si item supprimé), `name_snapshot`, `unit_label`, `grams_per_unit`,
 > Snapshot pattern : on stocke les valeurs nutritionnelles au moment de la
 > consommation. Si l'utilisateur modifie ensuite l'aliment dans sa biblio,
 > les anciennes entrées du journal gardent les valeurs qu'elles avaient.
+
+### `qogym_body_weights`
+Pesées (une par jour). `id`, `user_id`, `day` (DATE), `weight_kg`
+(DECIMAL 5,2), `created_at`, `updated_at`. Unique (user_id, day) → la
+ressaisie d'un jour corrige la valeur. Objectif : `qogym_users.target_weight_kg`.
+Migration : `sql/migration_body_weight_20261120.sql`.
 
 ### `qogym_monthly_reports`
 Rapports mensuels pré-générés (cron). `id`, `user_id`, `year`, `month`,
@@ -310,6 +317,7 @@ Migrations existantes (incluses dans ce livrable) :
 - `migration_nutrition_units.sql` — ajout colonnes unit_label/grams_per_unit
 - `migration_macro_targets.sql` — ajout colonnes daily_*_target sur users
 - `migration_comment_replies.sql` — ajout parent_comment_id
+- `migration_body_weight_20261120.sql` — table qogym_body_weights + users.target_weight_kg
 
 À jouer **avant** de déployer le code qui les utilise, sinon erreurs SQL.
 

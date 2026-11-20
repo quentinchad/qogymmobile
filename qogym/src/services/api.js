@@ -488,4 +488,27 @@ export const stepsService = {
     api.put('/steps.php', { goal }),
 };
 
+// Suivi du poids corporel : une pesée par jour (upsert), modifiable et
+// supprimable, y compris pour des jours passés. Voir qogym-api/weight.php.
+export const weightService = {
+  // from / to optionnels (YYYY-MM-DD) ; sans paramètre = tout l'historique
+  getEntries: (from, to) => {
+    const params = new URLSearchParams({ action: 'list' });
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    return api.get(`/weight.php?${params.toString()}`);
+  },
+
+  // Crée ou corrige la pesée du jour `day` (date locale YYYY-MM-DD)
+  saveEntry: (day, weight) =>
+    api.post('/weight.php', { day, weight }),
+
+  deleteEntry: (day) =>
+    api.delete(`/weight.php?day=${encodeURIComponent(day)}`),
+
+  // null pour retirer l'objectif
+  setGoal: (goal) =>
+    api.put('/weight.php', { goal }),
+};
+
 export default api;
