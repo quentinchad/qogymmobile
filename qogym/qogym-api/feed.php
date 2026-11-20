@@ -121,6 +121,304 @@ function sendNotificationEmail($toEmail, $toUsername, $fromUsername, $action, $w
     @mail($toEmail, $subject, $message, $headers);
 }
 
+// ============================================================================
+// SÉANCES EXTERNES (appli partenaire Recomp)
+//
+// Ces blocs ne s'exécutent QUE pour les clients qui le demandent :
+//   - GET  ?feed=1&include_external=1
+//   - GET  ?workout_id=recomp:…&owner_id=N
+//   - POST { action: like|comment, workout_id: "recomp:…", owner_id: N }
+//   - DELETE ?comment_id=ext:N
+// Les anciennes versions de l'appli et le site n'envoient jamais ces
+// paramètres : pour eux, le comportement de feed.php est inchangé.
+// Logique commune : partner_external.php
+// ============================================================================
+
+function isExternalWorkoutParam($v): bool
+{
+    return is_string($v) && strpos($v, 'recomp:') === 0;
+}
+
+// --- FIL FUSIONNÉ QoGym + Recomp (pagination par curseur "before") ---
+if ($method === 'GET' && isset($_GET['feed']) && !empty($_GET['include_external'])) {
+    require_once __DIR__ . '/partner_external.php';
+
+    $limit  = max(1, min(50, (int)($_GET['limit'] ?? 20)));
+    $before = $_GET['before'] ?? null;
+    if ($before !== null && !isValidCursor($before)) {
+        jsonResponse(['error' => 'Paramètre before invalide (format YYYY-MM-DD HH:MM:SS)'], 400);
+    }
+
+    // Même sélection que le fil classique, avec un curseur de date au lieu d'un offset
+    $stmt = $pdo->prepare("
+        SELECT CASE WHEN user_id = ? THEN friend_id ELSE user_id END as friend_id
+        FROM qogym_friendships
+        WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
+    ");
+    $stmt->execute([$user['id'], $user['id'], $user['id']]);
+    $allUserIds = array_merge($stmt->fetchAll(PDO::FETCH_COLUMN), [$user['id']]);
+    $placeholders = implode(',', array_fill(0, count($allUserIds), '?'));
+
+    $sql = "
+        SELECT DISTINCT
+            cw.id, cw.user_id, cw.workout_session_id, cw.started_at, cw.completed_at, cw.notes,
+            u.username as user_username, u.pdp as user_pdp,
+            ws.name as session_name, ws.image_url as session_image, st.name as session_type_name,
+            (SELECT COUNT(*) FROM qogym_workout_likes WHERE completed_workout_id = cw.id) as likes_count,
+            (SELECT COUNT(*) FROM qogym_workout_comments WHERE completed_workout_id = cw.id) as comments_count,
+            EXISTS(SELECT 1 FROM qogym_workout_likes WHERE completed_workout_id = cw.id AND user_id = ?) as user_has_liked,
+            (SELECT GROUP_CONCAT(u2.username SEPARATOR ', ')
+             FROM qogym_workout_participants wp
+             INNER JOIN qogym_users u2 ON wp.user_id = u2.id
+             WHERE wp.completed_workout_id = cw.id) as participants
+        FROM qogym_completed_workouts cw
+        INNER JOIN qogym_users u ON cw.user_id = u.id
+        INNER JOIN qogym_workout_sessions ws ON cw.workout_session_id = ws.id
+        INNER JOIN qogym_session_types st ON ws.session_type_id = st.id
+        LEFT JOIN qogym_workout_participants wp ON cw.id = wp.completed_workout_id
+        WHERE cw.completed_at IS NOT NULL
+        AND (
+            (u.default_workout_privacy = 'public' AND cw.user_id IN ($placeholders))
+            OR cw.user_id = ?
+            OR wp.user_id = ?
+        )
+        " . ($before !== null ? "AND cw.completed_at < ?" : "") . "
+        ORDER BY cw.completed_at DESC, cw.id DESC
+        LIMIT ?
+    ";
+    $params = array_merge([$user['id']], $allUserIds, [$user['id'], $user['id']]);
+    if ($before !== null) $params[] = $before;
+    $params[] = $limit;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $qogymWorkouts = $stmt->fetchAll();
+    foreach ($qogymWorkouts as &$w) {
+        $w['source'] = 'qogym';
+    }
+    unset($w);
+
+    // Séances Recomp des comptes visibles par le lecteur (amis 'public' + lui)
+    $ext = externalFetchList(visibleUserIdsForViewer($pdo, (int)$user['id']), $limit, $before);
+    $owners = usersById($pdo, array_column($ext['workouts'], 'user_id'));
+    $counts = externalReactionCounts($pdo, array_column($ext['workouts'], 'id'), (int)$user['id']);
+    $externalItems = [];
+    foreach ($ext['workouts'] as $w) {
+        if (!isset($owners[$w['user_id']])) continue;
+        $externalItems[] = externalToFeedItem($w, $owners[$w['user_id']], $counts[$w['id']]);
+    }
+
+    $merged = mergeByCompletedAt($qogymWorkouts, $externalItems, $limit);
+    $nextBefore = count($merged) === $limit ? $merged[count($merged) - 1]['completed_at'] : null;
+
+    jsonResponse([
+        'success'         => true,
+        'workouts'        => $merged,
+        'next_before'     => $nextBefore,
+        'external_status' => $ext['status'],
+    ]);
+}
+
+// --- DÉTAIL D'UNE SÉANCE RECOMP ---
+if ($method === 'GET' && isset($_GET['workout_id']) && isExternalWorkoutParam($_GET['workout_id'])) {
+    require_once __DIR__ . '/partner_external.php';
+
+    $externalId = $_GET['workout_id'];
+    $ownerId    = (int)($_GET['owner_id'] ?? 0);
+    if (!isExternalId($externalId) || $ownerId <= 0) {
+        jsonResponse(['error' => 'workout_id (recomp:…) et owner_id requis'], 400);
+    }
+    if (!canViewUserWorkouts($pdo, (int)$user['id'], $ownerId)) {
+        jsonResponse(['error' => 'Accès non autorisé'], 403);
+    }
+
+    $r = externalFetchOne($externalId, $ownerId);
+    if ($r['status'] === 'not_found') {
+        jsonResponse(['error' => 'Entraînement non trouvé'], 404);
+    }
+    if ($r['status'] !== 'ok') {
+        jsonResponse(['error' => 'Recomp est indisponible pour le moment', 'code' => 'external_' . $r['status']], 503);
+    }
+    $w = $r['workout'];
+
+    $owners = usersById($pdo, [$ownerId]);
+    if (!isset($owners[$ownerId])) {
+        jsonResponse(['error' => 'Entraînement non trouvé'], 404);
+    }
+    $counts = externalReactionCounts($pdo, [$externalId], (int)$user['id']);
+    $workout = externalToFeedItem($w, $owners[$ownerId], $counts[$externalId]);
+    $workout['participants'] = [];
+    $workout['exercises'] = externalExercisesToDetail($w);
+
+    $workout['likes'] = [];
+    $workout['comments'] = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT u.id, u.username, l.created_at
+            FROM qogym_external_likes l
+            INNER JOIN qogym_users u ON l.user_id = u.id
+            WHERE l.external_id = ?
+            ORDER BY l.created_at DESC
+        ");
+        $stmt->execute([$externalId]);
+        $workout['likes'] = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare("
+            SELECT c.id, c.comment, c.parent_comment_id, c.created_at, c.updated_at,
+                   u.id as user_id, u.username, u.pdp as user_pdp,
+                   (c.user_id = ?) as is_owner
+            FROM qogym_external_comments c
+            INNER JOIN qogym_users u ON c.user_id = u.id
+            WHERE c.external_id = ?
+            ORDER BY c.created_at ASC, c.id ASC
+        ");
+        $stmt->execute([$user['id'], $externalId]);
+        foreach ($stmt->fetchAll() as $c) {
+            $c['id'] = externalCommentId($c['id']);
+            $c['parent_comment_id'] = $c['parent_comment_id'] !== null ? externalCommentId($c['parent_comment_id']) : null;
+            $workout['comments'][] = $c;
+        }
+    } catch (PDOException $e) {
+        // Migration des réactions pas encore jouée : pas de likes / commentaires
+    }
+
+    jsonResponse(['success' => true, 'workout' => $workout]);
+}
+
+// --- LIKE / COMMENTAIRE SUR UNE SÉANCE RECOMP ---
+if ($method === 'POST' && isset($input['action']) && in_array($input['action'], ['like', 'comment'], true)
+    && isExternalWorkoutParam($input['workout_id'] ?? null)) {
+    require_once __DIR__ . '/partner_external.php';
+
+    $externalId = $input['workout_id'];
+    $ownerId    = (int)($input['owner_id'] ?? 0);
+    if (!isExternalId($externalId) || $ownerId <= 0) {
+        jsonResponse(['error' => 'workout_id (recomp:…) et owner_id requis'], 400);
+    }
+    if (!canViewUserWorkouts($pdo, (int)$user['id'], $ownerId)) {
+        jsonResponse(['error' => 'Accès non autorisé'], 403);
+    }
+    $r = externalFetchOne($externalId, $ownerId);
+    if ($r['status'] === 'not_found') {
+        jsonResponse(['error' => 'Entraînement non trouvé'], 404);
+    }
+    if ($r['status'] !== 'ok') {
+        jsonResponse(['error' => 'Recomp est indisponible pour le moment', 'code' => 'external_' . $r['status']], 503);
+    }
+    $workoutName = $r['workout']['name'] ?? 'Séance';
+    $owners = usersById($pdo, [$ownerId]);
+    $owner = $owners[$ownerId] ?? null;
+    if (!$owner) {
+        jsonResponse(['error' => 'Entraînement non trouvé'], 404);
+    }
+
+    try {
+        if ($input['action'] === 'like') {
+            $stmt = $pdo->prepare("SELECT id FROM qogym_external_likes WHERE external_id = ? AND user_id = ?");
+            $stmt->execute([$externalId, $user['id']]);
+            if ($stmt->fetch()) {
+                $stmt = $pdo->prepare("DELETE FROM qogym_external_likes WHERE external_id = ? AND user_id = ?");
+                $stmt->execute([$externalId, $user['id']]);
+                jsonResponse(['success' => true, 'action' => 'unliked']);
+            }
+            $stmt = $pdo->prepare("INSERT INTO qogym_external_likes (source, external_id, owner_id, user_id) VALUES ('recomp', ?, ?, ?)");
+            $stmt->execute([$externalId, $ownerId, $user['id']]);
+            if ($ownerId != $user['id']) {
+                sendNotificationEmail($owner['email'], $owner['username'], $user['username'], 'like', $workoutName);
+            }
+            jsonResponse(['success' => true, 'action' => 'liked']);
+        }
+
+        // Commentaire (racine ou réponse, aplati sur 1 niveau comme pour QoGym)
+        $comment = trim($input['comment'] ?? '');
+        if ($comment === '') {
+            jsonResponse(['error' => 'Entraînement et commentaire requis'], 400);
+        }
+        $parentId = null;
+        $parentRow = null;
+        if (isset($input['parent_comment_id']) && $input['parent_comment_id'] !== null && $input['parent_comment_id'] !== '') {
+            $parentId = parseExternalCommentId($input['parent_comment_id']);
+            if ($parentId === null) {
+                jsonResponse(['error' => 'Commentaire parent introuvable'], 404);
+            }
+            $stmt = $pdo->prepare("
+                SELECT c.id, c.parent_comment_id, c.user_id AS author_user_id,
+                       u.email AS author_email, u.username AS author_username
+                FROM qogym_external_comments c
+                INNER JOIN qogym_users u ON c.user_id = u.id
+                WHERE c.id = ? AND c.external_id = ?
+            ");
+            $stmt->execute([$parentId, $externalId]);
+            $parentRow = $stmt->fetch();
+            if (!$parentRow) {
+                jsonResponse(['error' => 'Commentaire parent introuvable'], 404);
+            }
+            if (!empty($parentRow['parent_comment_id'])) {
+                $parentId = (int)$parentRow['parent_comment_id'];
+                $stmt->execute([$parentId, $externalId]);
+                $parentRow = $stmt->fetch();
+            }
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO qogym_external_comments (source, external_id, owner_id, user_id, comment, parent_comment_id)
+            VALUES ('recomp', ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$externalId, $ownerId, $user['id'], $comment, $parentId]);
+        $commentId = $pdo->lastInsertId();
+    } catch (PDOException $e) {
+        jsonResponse(['error' => 'Réactions indisponibles pour le moment', 'code' => 'migration_needed'], 503);
+    }
+
+    // Mêmes notifications que pour une séance QoGym
+    if ($parentId === null) {
+        if ($ownerId != $user['id']) {
+            sendNotificationEmail($owner['email'], $owner['username'], $user['username'], 'comment', $workoutName);
+        }
+    } else {
+        if ($parentRow && $parentRow['author_user_id'] != $user['id']) {
+            sendNotificationEmail($parentRow['author_email'], $parentRow['author_username'], $user['username'], 'reply', $workoutName);
+        }
+        if ($ownerId != $user['id'] && (!$parentRow || $ownerId != $parentRow['author_user_id'])) {
+            sendNotificationEmail($owner['email'], $owner['username'], $user['username'], 'comment', $workoutName);
+        }
+    }
+
+    jsonResponse([
+        'success'           => true,
+        'comment_id'        => externalCommentId($commentId),
+        'parent_comment_id' => $parentId !== null ? externalCommentId($parentId) : null,
+        'username'          => $user['username'],
+    ]);
+}
+
+// --- SUPPRIMER UN COMMENTAIRE SUR UNE SÉANCE RECOMP (id "ext:N") ---
+if ($method === 'DELETE' && isset($_GET['comment_id']) && is_string($_GET['comment_id'])
+    && strpos($_GET['comment_id'], 'ext:') === 0) {
+    require_once __DIR__ . '/partner_external.php';
+
+    $commentId = parseExternalCommentId($_GET['comment_id']);
+    if ($commentId === null) {
+        jsonResponse(['error' => 'Commentaire non trouvé'], 404);
+    }
+    try {
+        $stmt = $pdo->prepare("SELECT user_id FROM qogym_external_comments WHERE id = ?");
+        $stmt->execute([$commentId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            jsonResponse(['error' => 'Commentaire non trouvé'], 404);
+        }
+        if ($row['user_id'] != $user['id']) {
+            jsonResponse(['error' => 'Vous ne pouvez supprimer que vos propres commentaires'], 403);
+        }
+        // Le commentaire et ses réponses
+        $stmt = $pdo->prepare("DELETE FROM qogym_external_comments WHERE id = ? OR parent_comment_id = ?");
+        $stmt->execute([$commentId, $commentId]);
+    } catch (PDOException $e) {
+        jsonResponse(['error' => 'Réactions indisponibles pour le moment', 'code' => 'migration_needed'], 503);
+    }
+    jsonResponse(['success' => true, 'message' => 'Commentaire supprimé']);
+}
+
 // RÉCUPÉRER LE FEED (entraînements des amis + entraînements partagés + propres entraînements)
 if ($method === 'GET' && isset($_GET['feed'])) {
     $limit = $_GET['limit'] ?? 50;

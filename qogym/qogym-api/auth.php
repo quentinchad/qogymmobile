@@ -160,6 +160,56 @@ function sendPasswordChangedEmail($email, $username)
     @mail($email, $subject, $message, $headers);
 }
 
+// Email de sécurité quand une appli partenaire est reliée au compte
+function sendPartnerLinkedEmail($email, $username, $appName)
+{
+    $subject = "Ton compte QoGym a été relié à $appName";
+    $message = "
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #2e7d50; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+                .info-box { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h2>QoGym</h2>
+                </div>
+                <div class='content'>
+                    <p>Salut <strong>$username</strong>,</p>
+                    <p>Ton compte QoGym vient d'être relié à <strong>$appName</strong>.</p>
+
+                    <div class='info-box'>
+                        <p style='margin: 0;'><strong>Date :</strong> " . date('d/m/Y à H:i') . "</p>
+                        <p style='margin: 10px 0 0 0;'>$appName peut voir et gérer tes amis, voir le fil et les profils de tes amis, liker et commenter, et changer ta visibilité. Il ne peut <strong>pas</strong> modifier tes séances, ton mot de passe ni tes autres données.</p>
+                    </div>
+
+                    <p>Si ce n'était pas toi, change ton mot de passe : ça déconnecte aussi $appName.</p>
+                </div>
+                <div class='footer'>
+                    <p>QoGym - Votre compagnon fitness quotidien</p>
+                    <p>Cet email a été envoyé à <strong>$email</strong></p>
+                </div>
+            </div>
+        </body>
+        </html>
+    ";
+
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $headers .= "From: QoGym <noreply@qojim.com>\r\n";
+    $headers .= "Reply-To: noreply@qojim.com\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion();
+
+    @mail($email, $subject, $message, $headers);
+}
+
 // Fonction pour envoyer l'email de confirmation d'adresse
 function sendVerificationEmail($email, $username, $token)
 {
@@ -322,12 +372,52 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'login
         ], 403);
     }
 
+    // Connexion depuis une appli partenaire (ex. Recomp) : paramètre
+    // facultatif "app". Sans lui, comportement strictement identique à avant.
+    $partnerApp = $input['app'] ?? null;
+    if ($partnerApp !== null && !isValidPartnerApp($partnerApp)) {
+        jsonResponse(['error' => 'Application partenaire inconnue', 'code' => 'UNKNOWN_APP'], 400);
+    }
+
+    if ($partnerApp !== null) {
+        // Token LIMITÉ (voir partner_tokens.php) et plus court
+        $token = generateToken();
+        $expiresAt = date('Y-m-d H:i:s', time() + PARTNER_TOKEN_EXPIRY);
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO qogym_auth_tokens (user_id, token, expires_at, scope)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$user['id'], $token, $expiresAt, partnerScope($partnerApp)]);
+        } catch (PDOException $e) {
+            // Migration pas encore jouée : on ne délivre surtout PAS un token
+            // complet à la place.
+            jsonResponse(['error' => 'Connexion partenaire indisponible pour le moment', 'code' => 'migration_needed'], 503);
+        }
+
+        // Email de sécurité : prévenir que le compte vient d'être relié
+        sendPartnerLinkedEmail($user['email'], $user['username'], PARTNER_APPS[$partnerApp]);
+
+        jsonResponse([
+            'success' => true,
+            'user' => [
+                'id' => $user['id'],
+                'email' => $user['email'],
+                'username' => $user['username'],
+                'is_admin' => (bool)$user['is_admin']
+            ],
+            'token' => $token,
+            'token_scope' => partnerScope($partnerApp),
+            'expires_at' => $expiresAt
+        ]);
+    }
+
     // Générer un nouveau token
     $token = generateToken();
     $expiresAt = date('Y-m-d H:i:s', time() + TOKEN_EXPIRY);
 
     $stmt = $pdo->prepare("
-        INSERT INTO qogym_auth_tokens (user_id, token, expires_at) 
+        INSERT INTO qogym_auth_tokens (user_id, token, expires_at)
         VALUES (?, ?, ?)
     ");
     $stmt->execute([$user['id'], $token, $expiresAt]);
@@ -580,10 +670,45 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'chang
     exit;
 }
 
+// APPLIS PARTENAIRES RELIÉES AU COMPTE
+// GET auth.php?partners=1 → [{ app, name, active_tokens, expires_at }]
+if ($method === 'GET' && isset($_GET['partners'])) {
+    try {
+        $user = verifyAuth();
+    } catch (Exception $e) {
+        jsonResponse(['error' => 'Non authentifié'], 401);
+    }
+
+    $pdo = getDB();
+    $partners = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT scope, COUNT(*) AS active_tokens, MAX(expires_at) AS expires_at
+            FROM qogym_auth_tokens
+            WHERE user_id = ? AND scope LIKE 'partner:%' AND expires_at > NOW()
+            GROUP BY scope
+        ");
+        $stmt->execute([$user['id']]);
+        foreach ($stmt->fetchAll() as $row) {
+            $app = substr($row['scope'], 8);
+            $partners[] = [
+                'app' => $app,
+                'name' => PARTNER_APPS[$app] ?? $app,
+                'active_tokens' => (int)$row['active_tokens'],
+                'expires_at' => $row['expires_at'],
+            ];
+        }
+    } catch (PDOException $e) {
+        // Migration pas jouée : aucune appli partenaire possible
+    }
+
+    jsonResponse(['success' => true, 'partners' => $partners]);
+}
+
 // VÉRIFIER LE TOKEN
 if ($method === 'GET') {
     $user = verifyAuth();
-    jsonResponse([
+    $response = [
         'success' => true,
         'user' => [
             'id' => $user['id'],
@@ -591,7 +716,39 @@ if ($method === 'GET') {
             'username' => $user['username'],
             'is_admin' => (bool)$user['is_admin']
         ]
-    ]);
+    ];
+    // Uniquement pour un token partenaire (réponse inchangée sinon)
+    if (!empty($GLOBALS['QOGYM_TOKEN_SCOPE'])) {
+        $response['token_scope'] = $GLOBALS['QOGYM_TOKEN_SCOPE'];
+    }
+    jsonResponse($response);
+}
+
+// DÉLIER UNE APPLI PARTENAIRE (révoque tous ses tokens pour ce compte)
+// POST { action: 'revoke_partner', app: 'recomp' } — token normal uniquement
+// (un token partenaire est bloqué par partner_tokens.php).
+if ($method === 'POST' && isset($input['action']) && $input['action'] === 'revoke_partner') {
+    try {
+        $user = verifyAuth();
+    } catch (Exception $e) {
+        jsonResponse(['error' => 'Non authentifié'], 401);
+    }
+
+    $app = $input['app'] ?? null;
+    if (!isValidPartnerApp($app)) {
+        jsonResponse(['error' => 'Application partenaire inconnue', 'code' => 'UNKNOWN_APP'], 400);
+    }
+
+    $pdo = getDB();
+    try {
+        $stmt = $pdo->prepare("DELETE FROM qogym_auth_tokens WHERE user_id = ? AND scope = ?");
+        $stmt->execute([$user['id'], partnerScope($app)]);
+        $revoked = $stmt->rowCount();
+    } catch (PDOException $e) {
+        $revoked = 0; // Migration pas jouée : rien à révoquer
+    }
+
+    jsonResponse(['success' => true, 'revoked' => $revoked]);
 }
 
 // DÉCONNEXION

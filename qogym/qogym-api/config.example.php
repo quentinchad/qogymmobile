@@ -11,6 +11,12 @@ define('TOKEN_EXPIRY', 365 * 24 * 60 * 60); // 1 an en secondes
 define('EMAIL_VERIFICATION_EXPIRY', 24 * 60 * 60); // 24h avant suppression du compte non confirmé
 define('APP_URL', 'https://qojim.com');
 
+// Appli partenaire Recomp (séances externes dans le fil). FACULTATIF :
+// tant que ces deux lignes sont absentes ou vides, la fonction est désactivée.
+// La clé est secrète : ne jamais la committer.
+// define('RECOMP_API_URL', 'https://…/api/partner/workouts');
+// define('RECOMP_PARTNER_KEY', '');
+
 // Configuration CORS
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -48,6 +54,9 @@ function getDB() {
     
     return $pdo;
 }
+
+// Tokens des applis partenaires (sessions limitées)
+require_once __DIR__ . '/partner_tokens.php';
 
 // Fonction pour générer un token
 function generateToken($length = 64) {
@@ -94,6 +103,10 @@ function verifyAuth() {
     if (!$user['email_verified']) {
         throw new Exception('Email non confirmé');
     }
+
+    // Token d'appli partenaire (ex. Recomp) : accès limité, voir
+    // partner_tokens.php. Sans effet pour un token normal.
+    enforceTokenScope($pdo, $token);
 
     return $user;
 }
