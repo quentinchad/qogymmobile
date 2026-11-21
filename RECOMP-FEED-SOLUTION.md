@@ -206,6 +206,14 @@ Réponse : la même qu'un login normal, plus deux champs :
 - **Durée : 90 jours** (au lieu d'1 an).
 - L'utilisateur reçoit un email « Ton compte QoGym a été relié à Recomp », **à la place** de l'email
   « Nouvelle connexion ». Cela règle le point « Emails » de ton §4.
+- **Cet email ne part pas au login** mais à la **première vraie utilisation** du token (amis, fil,
+  profils, préférences). D'ici là, la liaison est « en attente » : elle n'apparaît pas dans les applis
+  reliées de l'utilisateur. `GET auth.php` (qui suis-je) et `logout` ne l'activent pas.
+  Ainsi, si ton inscription échoue après le login QoGym (ex. **code d'invitation** refusé), l'utilisateur
+  ne reçoit pas un email « compte relié » trompeur. Rien à changer de ton côté pour en profiter.
+- **À faire quand même côté Recomp :** si l'inscription est abandonnée après le login QoGym, appelle
+  `POST auth.php { "action": "logout" }` avec ce token pour le supprimer (sinon il reste valable 90 jours
+  sans servir). Encore mieux : vérifier le code d'invitation **avant** d'appeler le login QoGym.
 - `GET auth.php` avec ce token renvoie aussi `token_scope: "partner:recomp"`.
 - `app` inconnu → `400` avec `code: "UNKNOWN_APP"`.
 - `503` avec `code: "migration_needed"` → la mise à jour n'est pas encore déployée côté QoGym. Réessayer plus tard.

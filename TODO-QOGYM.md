@@ -45,7 +45,8 @@
 
 ## 2. Contexte : la liaison avec Recomp
 
-Recomp est une appli de musculation faite par un collègue. Il garde sa propre table d'utilisateurs,
+Recomp est une appli de musculation faite par un collègue (Pakito), en ligne sur https://recomp.flaviensailliot.fr
+(constante `RECOMP_URL` dans `qogym-mobile/src/theme.ts`). Il garde sa propre table d'utilisateurs,
 mais **relie** chaque compte Recomp à un compte QoGym. L'id QoGym sert d'identifiant commun.
 
 - **Amis :** une seule liste, celle de QoGym (`qogym_friendships`). Recomp la gère via `friends.php`.
@@ -107,6 +108,17 @@ Tant qu'elle est désactivée, `include_external=1` renvoie les seules séances 
 2. [ ] FTP dans `qogym-api/` : `partner_external.php` **d'abord**, puis `feed.php` et `user_profile.php`.
 3. [ ] Vérifier sur le site et dans l'appli que le fil, le détail d'une séance, un like, un commentaire et un profil d'ami marchent comme avant.
 4. [ ] Vérifier qu'un ami en `private` n'affiche plus son historique.
+
+### 4.2 bis Email « compte relié » différé (21/11/2026)
+Problème constaté : Recomp demande un code d'invitation **après** le login QoGym. Sans code, pas de
+connexion à Recomp, mais l'email « compte relié » était déjà parti.
+Correction : le token partenaire est délivré en attente (`scope = 'partner:recomp:pending'`), activé
+(et email envoyé) à sa première vraie utilisation. Pas de migration.
+- [ ] FTP dans `qogym-api/` : `partner_tokens.php` **et** `auth.php` ensemble (la fonction d'email a
+  changé de fichier : l'un sans l'autre = erreur PHP).
+- [ ] Tester : connexion Recomp sans code d'invitation → pas d'email ; avec code → email à l'arrivée dans Recomp.
+- Les tokens délivrés avant ce correctif restent actifs (`partner:recomp`). Ceux des tentatives
+  ratées apparaissent dans « Applis reliées » (appli QoGym 2.1.0) : bouton « Délier ».
 
 ### 4.3 Pousser sur GitHub
 - [ ] **Seulement après accord du propriétaire :** `git push origin main`.
@@ -199,7 +211,7 @@ Prérequis : XAMPP (PHP 8 avec `curl` et `pdo_mysql`, MariaDB). Toutes les comma
    php -S 127.0.0.1:8792 fake_recomp/router.php
    php -d extension=pdo_mysql -d extension=curl -S 127.0.0.1:8793 -t C:/temp/qogym_test_api
    ```
-5. **Lancer les tests** (attendu : `TOUT OK (56 tests)`) :
+5. **Lancer les tests** (attendu : `TOUT OK (69 tests)`) :
    ```bash
    php run_tests.php
    ```

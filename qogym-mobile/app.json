@@ -3,7 +3,7 @@
     "name": "QoGym",
     "slug": "qogym",
     "owner": "qojim",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "qogym",
@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.qojim.qogym",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "backgroundColor": "#0d1626",
         "foregroundImage": "./assets/android-icon-foreground.png",

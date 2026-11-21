@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { authApi, errMsg, isExternalId } from '@/lib/api';
 import { store } from '@/lib/storage';
-import { colors, radius } from '@/theme';
+import { colors, radius, RECOMP_URL } from '@/theme';
 import { Button, Card, SectionTitle, T } from '@/components/ui';
 import { useConfirm, useToast } from '@/components/Feedback';
 
@@ -20,6 +20,8 @@ export const workoutDetailHref = (w: any, ownerId?: number | string) =>
   isRecomp(w)
     ? `/workout-detail/${encodeURIComponent(String(w.id))}?owner_id=${ownerId ?? w.user_id}`
     : `/workout-detail/${w.id}`;
+
+export const openRecomp = () => Linking.openURL(RECOMP_URL).catch(() => {});
 
 export const RecompBadge = ({ small }: { small?: boolean }) => (
   <View style={[styles.badge, small && { paddingHorizontal: 6, paddingVertical: 1 }]}>
@@ -73,7 +75,7 @@ export function PartnerAnnouncement({ enabled }: { enabled: boolean }) {
           <Text style={styles.kicker}>NOUVEAU PARTENARIAT</Text>
           <Text style={styles.title}>QoGym s'associe à Recomp</Text>
           <Text style={styles.text}>
-            QoGym s'associe à <Text style={styles.strong}>Recomp</Text>, la future appli de musculation de{' '}
+            QoGym s'associe à <Text style={styles.strong}>Recomp</Text>, l'appli de musculation de{' '}
             <Text style={styles.strong}>Pakito</Text>.
           </Text>
           <View style={styles.points}>
@@ -83,8 +85,19 @@ export function PartnerAnnouncement({ enabled }: { enabled: boolean }) {
             <Point icon="lock-closed" text="Ta confidentialité est respectée : en « Privé », personne ne voit tes séances, dans aucune des deux applis." />
           </View>
           <Text style={styles.small}>
-            Tu pourras relier ton compte depuis Recomp à sa sortie, et le délier à tout moment depuis ton Profil (« Applis reliées »).
+            Sur Recomp, choisis « Continuer avec mon compte QoGym » pour relier ton compte. Tu peux le délier à tout moment depuis ton
+            Profil (« Applis reliées »).
           </Text>
+          <Button
+            title="Découvrir Recomp"
+            icon="open-outline"
+            variant="outline"
+            onPress={() => {
+              close();
+              openRecomp();
+            }}
+            full
+          />
           <Button title="Super !" onPress={close} full />
         </View>
       </View>
@@ -152,10 +165,11 @@ export function LinkedAppsCard({ active }: { active: boolean }) {
         ))
       ) : (
         <T v="small">
-          Aucune appli reliée. Avec <Text style={{ color: colors.recomp, fontWeight: '700' }}>Recomp</Text> (bientôt), tes séances et celles de tes amis
-          seront visibles dans les deux applis.
+          Aucune appli reliée. Connecte-toi sur <Text style={{ color: colors.recomp, fontWeight: '700' }}>Recomp</Text> avec ton compte QoGym : tes
+          séances et celles de tes amis seront visibles dans les deux applis.
         </T>
       )}
+      <Button title="Ouvrir Recomp" icon="open-outline" small variant="outline" onPress={openRecomp} />
     </Card>
   );
 }

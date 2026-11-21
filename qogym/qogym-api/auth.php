@@ -160,57 +160,9 @@ function sendPasswordChangedEmail($email, $username)
     @mail($email, $subject, $message, $headers);
 }
 
-// Email de sécurité quand une appli partenaire est reliée au compte
-function sendPartnerLinkedEmail($email, $username, $appName)
-{
-    $subject = "Ton compte QoGym a été relié à $appName";
-    $message = "
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #2e7d50; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-                .info-box { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; }
-                .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>QoGym</h2>
-                </div>
-                <div class='content'>
-                    <p>Salut <strong>$username</strong>,</p>
-                    <p>Ton compte QoGym vient d'être relié à <strong>$appName</strong>.</p>
+// sendPartnerLinkedEmail() : voir partner_tokens.php (envoyé à l'activation
+// de la liaison, pas au login)
 
-                    <div class='info-box'>
-                        <p style='margin: 0;'><strong>Date :</strong> " . date('d/m/Y à H:i') . "</p>
-                        <p style='margin: 10px 0 0 0;'>$appName peut voir et gérer tes amis, voir le fil et les profils de tes amis, liker et commenter, et changer ta visibilité. Il ne peut <strong>pas</strong> modifier tes séances, ton mot de passe ni tes autres données.</p>
-                    </div>
-
-                    <p>Si ce n'était pas toi, change ton mot de passe : ça déconnecte aussi $appName.</p>
-                </div>
-                <div class='footer'>
-                    <p>QoGym - Votre compagnon fitness quotidien</p>
-                    <p>Cet email a été envoyé à <strong>$email</strong></p>
-                </div>
-            </div>
-        </body>
-        </html>
-    ";
-
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: QoGym <noreply@qojim.com>\r\n";
-    $headers .= "Reply-To: noreply@qojim.com\r\n";
-    $headers .= "X-Mailer: PHP/" . phpversion();
-
-    @mail($email, $subject, $message, $headers);
-}
-
-// Fonction pour envoyer l'email de confirmation d'adresse
 function sendVerificationEmail($email, $username, $token)
 {
     $verifyLink = APP_URL . "/verify-email?token=" . $token;
@@ -380,7 +332,12 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'login
     }
 
     if ($partnerApp !== null) {
-        // Token LIMITÉ (voir partner_tokens.php) et plus court
+        // Token LIMITÉ (voir partner_tokens.php) et plus court.
+        // Il est délivré « en attente » : la liaison n'est activée (et l'email
+        // « compte relié » envoyé) qu'à la première vraie utilisation du token
+        // par l'appli partenaire. Si l'inscription côté partenaire échoue
+        // (ex. code d'invitation refusé), l'utilisateur ne reçoit donc pas
+        // d'email et rien n'apparaît dans ses « applis reliées ».
         $token = generateToken();
         $expiresAt = date('Y-m-d H:i:s', time() + PARTNER_TOKEN_EXPIRY);
         try {
@@ -388,15 +345,12 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'login
                 INSERT INTO qogym_auth_tokens (user_id, token, expires_at, scope)
                 VALUES (?, ?, ?, ?)
             ");
-            $stmt->execute([$user['id'], $token, $expiresAt, partnerScope($partnerApp)]);
+            $stmt->execute([$user['id'], $token, $expiresAt, partnerPendingScope($partnerApp)]);
         } catch (PDOException $e) {
             // Migration pas encore jouée : on ne délivre surtout PAS un token
             // complet à la place.
             jsonResponse(['error' => 'Connexion partenaire indisponible pour le moment', 'code' => 'migration_needed'], 503);
         }
-
-        // Email de sécurité : prévenir que le compte vient d'être relié
-        sendPartnerLinkedEmail($user['email'], $user['username'], PARTNER_APPS[$partnerApp]);
 
         jsonResponse([
             'success' => true,
@@ -685,7 +639,7 @@ if ($method === 'GET' && isset($_GET['partners'])) {
         $stmt = $pdo->prepare("
             SELECT scope, COUNT(*) AS active_tokens, MAX(expires_at) AS expires_at
             FROM qogym_auth_tokens
-            WHERE user_id = ? AND scope LIKE 'partner:%' AND expires_at > NOW()
+            WHERE user_id = ? AND scope LIKE 'partner:%' AND scope NOT LIKE '%" . PARTNER_PENDING_SUFFIX . "' AND expires_at > NOW()
             GROUP BY scope
         ");
         $stmt->execute([$user['id']]);
@@ -741,8 +695,8 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'revok
 
     $pdo = getDB();
     try {
-        $stmt = $pdo->prepare("DELETE FROM qogym_auth_tokens WHERE user_id = ? AND scope = ?");
-        $stmt->execute([$user['id'], partnerScope($app)]);
+        $stmt = $pdo->prepare("DELETE FROM qogym_auth_tokens WHERE user_id = ? AND scope IN (?, ?)");
+        $stmt->execute([$user['id'], partnerScope($app), partnerPendingScope($app)]);
         $revoked = $stmt->rowCount();
     } catch (PDOException $e) {
         $revoked = 0; // Migration pas jouée : rien à révoquer

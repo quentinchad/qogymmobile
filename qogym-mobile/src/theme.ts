@@ -51,6 +51,7 @@ export const font = {
 
 export const QOJIM = 'https://qojim.com';
 export const API_URL = `${QOJIM}/qogym-api`;
+export const RECOMP_URL = 'https://recomp.flaviensailliot.fr';
 export const avatarUrl = (pdp?: string | null) => (pdp ? `${QOJIM}/pdp/${pdp}` : null);
 export const sessionImageUrl = (img?: string | null) =>
   !img ? null : img.startsWith('http') ? img : `${QOJIM}/imgseances/${img}`;

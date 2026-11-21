@@ -136,6 +136,40 @@ echo "== H. Token partenaire ==\n";
 ok('fil fusionné avec token partenaire → 200', req('GET', '/feed.php?feed=1&include_external=1', 'tokP')['code'] === 200);
 ok('workouts.php avec token partenaire → 403', req('GET', '/workouts.php?history=1', 'tokP')['code'] === 403);
 
+echo "== H2. Liaison en attente jusqu'à la 1re vraie utilisation ==\n";
+// L'email « compte relié » part quand le scope passe de :pending à actif ;
+// on vérifie donc la bascule du scope (mail() n'est pas observable ici).
+function scopeOf($token) {
+    global $MYSQL;
+    return trim((string)shell_exec(escapeshellarg($MYSQL) . ' -N -h127.0.0.1 -P3399 -uroot qogym_test -e ' . escapeshellarg("SELECT IFNULL(scope,'NULL') FROM qogym_auth_tokens WHERE token = '" . addslashes($token) . "'")));
+}
+db("UPDATE qogym_users SET password_hash = '" . password_hash('motdepasse', PASSWORD_DEFAULT) . "' WHERE id = 4");
+$l = req('POST', '/auth.php', null, ['action' => 'login', 'email' => 'd@test.local', 'password' => 'motdepasse', 'app' => 'recomp']);
+$tp = $l['json']['token'] ?? '';
+ok('login app=recomp → token_scope partner:recomp', $l['code'] === 200 && ($l['json']['token_scope'] ?? '') === 'partner:recomp', $l['raw']);
+ok('token délivré en attente', scopeOf($tp) === 'partner:recomp:pending', scopeOf($tp));
+$r = req('GET', '/auth.php', $tp);
+ok('qui suis-je → OK, scope affiché partner:recomp', $r['code'] === 200 && ($r['json']['token_scope'] ?? '') === 'partner:recomp', $r['raw']);
+ok('qui suis-je n\'active pas', scopeOf($tp) === 'partner:recomp:pending', scopeOf($tp));
+$r = req('GET', '/auth.php?partners=1', 'tokD');
+ok('en attente : pas listé dans les applis reliées', $r['code'] === 200 && $r['json']['partners'] === [], $r['raw']);
+ok('en attente : workouts.php → 403', req('GET', '/workouts.php?history=1', $tp)['code'] === 403);
+ok('hors périmètre n\'active pas', scopeOf($tp) === 'partner:recomp:pending', scopeOf($tp));
+ok('1re vraie utilisation (amis) → 200', req('GET', '/friends.php?list=1', $tp)['code'] === 200);
+ok('token activé', scopeOf($tp) === 'partner:recomp', scopeOf($tp));
+$r = req('GET', '/auth.php?partners=1', 'tokD');
+ok('activé : listé dans les applis reliées', count($r['json']['partners'] ?? []) === 1 && $r['json']['partners'][0]['app'] === 'recomp', $r['raw']);
+// Inscription abandonnée chez le partenaire : le token en attente se supprime par logout
+$l2 = req('POST', '/auth.php', null, ['action' => 'login', 'email' => 'd@test.local', 'password' => 'motdepasse', 'app' => 'recomp']);
+$tp2 = $l2['json']['token'] ?? '';
+ok('logout d\'un token en attente → OK', req('POST', '/auth.php', $tp2, ['action' => 'logout'])['code'] === 200 && scopeOf($tp2) === '', scopeOf($tp2));
+// Délier supprime aussi les tokens en attente
+$l3 = req('POST', '/auth.php', null, ['action' => 'login', 'email' => 'd@test.local', 'password' => 'motdepasse', 'app' => 'recomp']);
+$tp3 = $l3['json']['token'] ?? '';
+$r = req('POST', '/auth.php', 'tokD', ['action' => 'revoke_partner', 'app' => 'recomp']);
+ok('délier → actif + en attente supprimés', $r['code'] === 200 && $r['json']['revoked'] === 2 && scopeOf($tp) === '' && scopeOf($tp3) === '', $r['raw']);
+ok('login normal (sans app) inchangé : pas de token_scope', !array_key_exists('token_scope', req('POST', '/auth.php', null, ['action' => 'login', 'email' => 'd@test.local', 'password' => 'motdepasse'])['json'] ?? []));
+
 echo "== I. Recomp en panne / lent ==\n";
 touch("$FAKE/down.flag"); clearCache();
 $r = req('GET', '/feed.php?feed=1&include_external=1&limit=20', 'tokA');
