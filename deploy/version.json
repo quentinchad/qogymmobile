@@ -1,7 +1,7 @@
 {
-  "latestVersionCode": 15,
-  "latestVersion": "2.1.0",
+  "latestVersionCode": 16,
+  "latestVersion": "2.1.1",
   "downloadUrl": "https://qojim.com/qogym.apk",
   "minRequiredVersionCode": 1,
-  "releaseNotes": "Nouveau : suivi du poids dans le Profil (pesée du jour, corrections, courbes et objectif). Partenariat avec Recomp. Correction des champs kg / reps pendant l'entraînement."
+  "releaseNotes": "Nouveau : suivi du poids dans le Profil (pesée du jour, corrections, courbes et objectif). Partenariat avec Recomp, avec un lien direct vers l'appli. Correction des champs kg / reps pendant l'entraînement."
 }
