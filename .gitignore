@@ -10,3 +10,4 @@ qogym/qogym-api_old/
 .env
 .env.*
 **/.claude/settings.local.json
+qogym-essai-*.apk

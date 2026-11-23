@@ -19,6 +19,7 @@ import { MenuItem } from '@/screens/SessionsScreen';
 import { useConfirm, useToast } from '@/components/Feedback';
 import { useStartWorkout } from '@/workout/useStartWorkout';
 import { isRecomp, RecompBadge } from '@/components/Partner';
+import { SessionRecapSheet } from '@/components/SessionRecap';
 
 export default function WorkoutDetail() {
   // Séance Recomp : id texte "recomp:…" + owner_id (id QoGym du propriétaire)
@@ -37,6 +38,7 @@ export default function WorkoutDetail() {
   const [editNotes, setEditNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
   const [launching, setLaunching] = useState(false);
+  const [recap, setRecap] = useState(false);
   const inputRef = useRef<TextInputInstance>(null);
 
   const load = async () => {
@@ -241,11 +243,11 @@ export default function WorkoutDetail() {
           {!!w.participants && !(Array.isArray(w.participants) && w.participants.length === 0) && <Pill label={`Avec ${w.participants}`} icon="people" color={colors.purple} bg={colors.purpleSoft} />}
         </View>
 
-        {recomp ? (
-          <T v="small">Séance faite sur Recomp, l'appli partenaire de QoGym.</T>
-        ) : (
-          <Button title="Lancer cette séance" icon="play" onPress={launch} loading={launching} />
-        )}
+        {recomp && <T v="small">Séance faite sur Recomp, l'appli partenaire de QoGym.</T>}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {!recomp && <Button title="Lancer" icon="play" onPress={launch} loading={launching} style={{ flex: 1 }} />}
+          <Button title="Récap en image" icon="image-outline" variant="outline" onPress={() => setRecap(true)} style={{ flex: 1 }} />
+        </View>
 
         {/* Exercices */}
         {(w.exercises || []).length > 0 && (
@@ -379,6 +381,8 @@ export default function WorkoutDetail() {
           <IconBtn name="send" color={comment.trim() ? '#1a1406' : colors.textFaint} bg={comment.trim() ? colors.gold : colors.surface3} onPress={send} label="Envoyer" />
         </View>
       </View>
+
+      <SessionRecapSheet w={w} visible={recap} onClose={() => setRecap(false)} />
 
       <Sheet visible={menu} onClose={() => setMenu(false)} title="Actions">
         <View style={{ paddingBottom: 8 }}>
