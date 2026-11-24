@@ -6,6 +6,7 @@ import { useToast } from './Toast';
 import { groupBySupersets, supersetLetter } from '../utils/supersets';
 import { bestOneRepMax } from '../utils/oneRepMax';
 import OneRepMaxBadge from './OneRepMaxBadge';
+import WorkoutMusic from './WorkoutMusic';
 import { useWorkoutLaunch, LaunchWorkoutButton, WorkoutMenu } from './WorkoutLaunchActions';
 import './WorkoutDetailModal.css';
 
@@ -173,6 +174,12 @@ const WorkoutDetailModal = ({ workoutId, onClose, currentUserId }) => {
                   </div>
                 )}
               </div>
+
+              <WorkoutMusic
+                workout={data}
+                isOwn={isOwn}
+                onChange={(music) => setData(prev => prev ? { ...prev, music } : prev)}
+              />
 
               <LaunchWorkoutButton onClick={launch} loading={launching} />
 

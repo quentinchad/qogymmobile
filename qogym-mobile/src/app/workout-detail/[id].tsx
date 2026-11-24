@@ -20,6 +20,7 @@ import { useConfirm, useToast } from '@/components/Feedback';
 import { useStartWorkout } from '@/workout/useStartWorkout';
 import { isRecomp, RecompBadge } from '@/components/Partner';
 import { SessionRecapSheet } from '@/components/SessionRecap';
+import { WorkoutMusic } from '@/components/WorkoutMusic';
 
 export default function WorkoutDetail() {
   // Séance Recomp : id texte "recomp:…" + owner_id (id QoGym du propriétaire)
@@ -242,6 +243,17 @@ export default function WorkoutDetail() {
           {Number(w.volume_kg) > 0 && <Pill label={`${Math.round(Number(w.volume_kg))} kg soulevés`} icon="barbell-outline" />}
           {!!w.participants && !(Array.isArray(w.participants) && w.participants.length === 0) && <Pill label={`Avec ${w.participants}`} icon="people" color={colors.purple} bg={colors.purpleSoft} />}
         </View>
+
+        {!recomp && (
+          <WorkoutMusic
+            w={w}
+            isOwn={isOwn}
+            onChange={(music) => {
+              setW((prev: any) => (prev ? { ...prev, music } : prev));
+              store.set('qg_needs_refresh', Date.now()); // le fil affichera le nouveau son
+            }}
+          />
+        )}
 
         {recomp && <T v="small">Séance faite sur Recomp, l'appli partenaire de QoGym.</T>}
         <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -11,6 +11,7 @@ import { colors, radius, sessionImageUrl } from '@/theme';
 import { Avatar, Button, Card, Empty, IconBtn, Loader, TabTitle } from '@/components/ui';
 import { FriendsSheet } from '@/components/FriendsSheet';
 import { isRecomp, RecompBadge, RecompBanner, workoutDetailHref } from '@/components/Partner';
+import { MusicTag } from '@/components/WorkoutMusic';
 import type { TabScreenProps } from '@/app/index';
 
 const LIMIT = 10;
@@ -187,6 +188,7 @@ const FeedCard = memo(function FeedCard({ w, onLike }: { w: any; onLike: (w: any
       <View style={{ paddingHorizontal: 14, paddingTop: 12, gap: 4 }}>
         <Text style={styles.session}>{w.session_name}</Text>
         {!!w.session_type_name && <Text style={styles.type}>{w.session_type_name}</Text>}
+        <MusicTag music={w.music} />
         {recomp && (Number(w.total_sets) > 0 || Number(w.duration_min) > 0) && (
           <Text style={styles.type}>
             {[

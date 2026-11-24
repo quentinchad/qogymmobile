@@ -3,7 +3,7 @@
     "name": "QoGym",
     "slug": "qogym",
     "owner": "qojim",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "qogym",
@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.qojim.qogym",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "backgroundColor": "#0d1626",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -71,13 +71,24 @@
       "expo-font",
       "expo-sharing",
       [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
         "expo-media-library",
         {
           "photosPermission": false,
           "savePhotosPermission": "QoGym enregistre le récap de ta séance dans tes photos.",
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": false

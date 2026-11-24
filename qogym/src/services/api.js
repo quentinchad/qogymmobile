@@ -275,8 +275,19 @@ export const feedService = {
       ...(parentCommentId ? { parent_comment_id: parentCommentId } : {}),
     }),
   
-  deleteComment: (commentId) => 
+  deleteComment: (commentId) =>
     api.delete(`/feed.php?comment_id=${commentId}`),
+};
+
+// Musique d'un entraînement (extraits 30 s Deezer via qogym-api/music.php)
+export const musicService = {
+  search: (q) => api.get(`/music.php?q=${encodeURIComponent(q)}`),
+  // Lien frais de l'extrait (il expire au bout de ~15 min côté Deezer)
+  preview: (trackId) => api.get(`/music.php?preview=${encodeURIComponent(trackId)}`),
+  setForWorkout: (workoutId, trackId) =>
+    api.post('/music.php', { action: 'set', workout_id: workoutId, track_id: trackId }),
+  removeFromWorkout: (workoutId) =>
+    api.post('/music.php', { action: 'remove', workout_id: workoutId }),
 };
 
 // Services des amis

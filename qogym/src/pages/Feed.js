@@ -9,6 +9,7 @@ import useRefreshOnFocus from '../hooks/useRefreshOnFocus';
 import { groupBySupersets, supersetLetter } from '../utils/supersets';
 import { bestOneRepMax } from '../utils/oneRepMax';
 import OneRepMaxBadge from '../components/OneRepMaxBadge';
+import WorkoutMusic, { MusicTag } from '../components/WorkoutMusic';
 import { useWorkoutLaunch, LaunchWorkoutButton, WorkoutMenu } from '../components/WorkoutLaunchActions';
 import './Feed.css';
 
@@ -439,6 +440,8 @@ const Feed = ({ user }) => {
 
                   <div className="session-type">{workout.session_type_name}</div>
 
+                  <MusicTag music={workout.music} />
+
                   {workout.participants && (
                     <div className="participants">
                       <strong>Participants:</strong> {workout.participants}
@@ -541,6 +544,17 @@ const Feed = ({ user }) => {
               <div className="session-type">
                 {selectedWorkout.session_type_name}
               </div>
+
+              <WorkoutMusic
+                workout={selectedWorkout}
+                isOwn={!!(user && selectedWorkout.user_id === user.id)}
+                onChange={(music) => {
+                  setSelectedWorkout(sw => sw ? { ...sw, music } : sw);
+                  setWorkouts(prev => prev.map(w =>
+                    w.id === selectedWorkout.id ? { ...w, music } : w
+                  ));
+                }}
+              />
 
               <LaunchWorkoutButton onClick={launch} loading={launching} />
 

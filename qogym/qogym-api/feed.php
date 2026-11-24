@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once __DIR__ . '/music_lib.php';
 
 $user = verifyAuth();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -207,7 +208,7 @@ if ($method === 'GET' && isset($_GET['feed']) && !empty($_GET['include_external'
         $externalItems[] = externalToFeedItem($w, $owners[$w['user_id']], $counts[$w['id']]);
     }
 
-    $merged = mergeByCompletedAt($qogymWorkouts, $externalItems, $limit);
+    $merged = attachWorkoutMusic($pdo, mergeByCompletedAt($qogymWorkouts, $externalItems, $limit));
     $nextBefore = count($merged) === $limit ? $merged[count($merged) - 1]['completed_at'] : null;
 
     jsonResponse([
@@ -479,7 +480,7 @@ if ($method === 'GET' && isset($_GET['feed'])) {
 
     $params = array_merge([$user['id']], $allUserIds, [$user['id'], $user['id'], (int)$limit, (int)$offset]);
     $stmt->execute($params);
-    $workouts = $stmt->fetchAll();
+    $workouts = attachWorkoutMusic($pdo, $stmt->fetchAll());
 
     jsonResponse(['success' => true, 'workouts' => $workouts]);
 }
@@ -660,6 +661,9 @@ if ($method === 'GET' && isset($_GET['workout_id'])) {
     ");
     $stmt->execute([$user['id'], $workoutId]);
     $workout['comments'] = $stmt->fetchAll();
+
+    // Musique choisie par l'auteur (null si aucune)
+    $workout = attachWorkoutMusic($pdo, [$workout])[0];
 
     jsonResponse(['success' => true, 'workout' => $workout]);
 }

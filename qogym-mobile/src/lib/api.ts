@@ -181,6 +181,26 @@ export const feedApi = {
   deleteComment: (id: number | string) => del(`/feed.php?comment_id=${q(String(id))}`),
 };
 
+// ── Musique d'un entraînement (extraits 30 s Deezer, via music.php) ─────
+export type WorkoutMusicInfo = {
+  provider: 'deezer';
+  track_id: string;
+  title: string;
+  artist: string;
+  cover_url: string | null;
+  link: string | null;
+};
+export type MusicTrack = WorkoutMusicInfo & { duration: number; explicit: boolean };
+
+export const musicApi = {
+  search: (term: string) => get<{ tracks: MusicTrack[] }>(`/music.php?q=${q(term)}`),
+  /** Lien frais de l'extrait : il expire au bout de ~15 min côté Deezer. */
+  preview: (trackId: string) => get<{ preview_url: string }>(`/music.php?preview=${q(trackId)}`),
+  setForWorkout: (workout_id: number, track_id: string) =>
+    post<{ music: WorkoutMusicInfo }>('/music.php', { action: 'set', workout_id, track_id }),
+  removeFromWorkout: (workout_id: number) => post('/music.php', { action: 'remove', workout_id }),
+};
+
 /**
  * Page suivante d'une liste paginée : curseur `next_before` si le backend
  * gère la fusion Recomp, sinon `offset` (ancien backend).

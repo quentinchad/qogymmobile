@@ -1,7 +1,7 @@
 {
-  "latestVersionCode": 18,
-  "latestVersion": "2.2.0",
+  "latestVersionCode": 19,
+  "latestVersion": "2.3.0",
   "downloadUrl": "https://qojim.com/qogym.apk",
   "minRequiredVersionCode": 1,
-  "releaseNotes": "Nouveau : récap de ta séance en image, à partager ou à enregistrer dans ta galerie (bouton « Récap en image » dans le détail d'une séance)."
+  "releaseNotes": "Nouveau : ajoute un son à tes séances ! Dans le détail d'une séance, « Ajouter un son » : un extrait de 30 s joue en boucle quand tes amis l'ouvrent."
 }

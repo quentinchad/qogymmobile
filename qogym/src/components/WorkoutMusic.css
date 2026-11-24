@@ -1,0 +1,249 @@
+/* ============================================================
+   WorkoutMusic — son d'un entraînement (extrait 30 s en boucle)
+============================================================ */
+
+.wm-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.7rem;
+  margin: 0.25rem 0 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  transition: border-color 0.2s;
+}
+.wm-card--playing {
+  border-color: rgba(46, 125, 80, 0.55);
+}
+
+.wm-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.wm-cover--sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+.wm-cover--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #9aa79a);
+}
+
+.wm-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+.wm-title {
+  color: var(--text-primary, #dfeee4);
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wm-artist {
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wm-source {
+  color: var(--text-secondary, #9aa79a);
+  text-decoration: underline;
+}
+.wm-explicit {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  line-height: 1.3;
+  vertical-align: middle;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-primary, #dfeee4);
+}
+
+.wm-owner-actions {
+  display: flex;
+  gap: 0.9rem;
+  margin-top: 0.2rem;
+}
+.wm-owner-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--success-color, #2ecc71);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wm-owner-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wm-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #dfeee4);
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.wm-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.wm-unavailable {
+  width: 40px;
+  text-align: center;
+  color: var(--text-secondary, #9aa79a);
+}
+
+/* Petit égaliseur animé pendant la lecture */
+.wm-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+.wm-eq i {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--success-color, #2ecc71);
+  animation: wm-eq 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.wm-eq i:nth-child(2) { animation-delay: -0.3s; }
+.wm-eq i:nth-child(3) { animation-delay: -0.6s; }
+@keyframes wm-eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-eq i { animation: none; transform: scaleY(0.7); }
+}
+
+.wm-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--text-primary, #dfeee4);
+  animation: wm-spin 0.8s linear infinite;
+}
+@keyframes wm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Bouton "Ajouter un son" (auteur, aucun son choisi) */
+.wm-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wm-add:hover {
+  color: var(--text-primary, #dfeee4);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Recherche d'un titre */
+.wm-picker {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+}
+.wm-picker-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.wm-picker-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-color, #1a1d1c);
+  color: var(--text-primary, #dfeee4);
+  font-size: 16px; /* évite le zoom auto d'iOS */
+}
+.wm-picker-hint {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.wm-picker-error {
+  color: var(--danger-color, #e74c3c);
+}
+.wm-results {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.wm-result {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.45rem 0.35rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.wm-result:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+.wm-result:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wm-credit {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #9aa79a);
+  text-align: right;
+}
+
+/* Ligne "♪ Titre · Artiste" sur les cartes du fil */
+.wm-tag {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9aa79a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
