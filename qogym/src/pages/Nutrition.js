@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmModal';
 import useRefreshOnFocus from '../hooks/useRefreshOnFocus';
 import FoodLibraryModal from '../components/FoodLibraryModal';
+import MealTemplatesModal from '../components/MealTemplatesModal';
 import './Nutrition.css';
 
 /**
@@ -86,6 +87,8 @@ const Nutrition = ({ user }) => {
   const [mealTarget, setMealTarget]   = useState(null);
   // Aliment en cours de déplacement vers un repas (ouvre la feuille de choix)
   const [movingEntry, setMovingEntry] = useState(null);
+  // Repas types : null = fermé ; { meal: repas cible | null, seed: pré-remplissage | null }
+  const [templatesModal, setTemplatesModal] = useState(null);
   const [totals, setTotals]           = useState({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
   const [loading, setLoading]         = useState(true);
   const [kcalTarget, setKcalTarget]   = useState(null);
@@ -367,12 +370,25 @@ const Nutrition = ({ user }) => {
 
   const toggleMeal = (id) => setOpenMeals(o => ({ ...o, [id]: !o[id] }));
 
+  // ── Repas types ──
+  const mealLabel = (m) => `Repas ${m.number}${m.name ? ` · ${m.name}` : ''}`;
+  const openTemplates = (meal = null) => setTemplatesModal({ meal, seed: null });
+  // Pré-remplit un nouveau repas type avec les aliments d'un repas du journal
+  const saveMealAsTemplate = (meal) => setTemplatesModal({
+    meal: null,
+    seed: { name: meal.name || '', items: meal.entries },
+  });
+  const onTemplateApplied = async (mealId) => {
+    await loadDay();
+    if (mealId) setOpenMeals(o => ({ ...o, [mealId]: true }));
+  };
+
   const deleteMeal = async (meal) => {
     const n = meal.entries.length;
     const ok = await confirm({
       title: n > 0
-        ? `Supprimer "Repas ${meal.number}" et ses ${n} aliment${n > 1 ? 's' : ''} ?`
-        : `Supprimer "Repas ${meal.number}" ?`,
+        ? `Supprimer "${mealLabel(meal)}" et ses ${n} aliment${n > 1 ? 's' : ''} ?`
+        : `Supprimer "${mealLabel(meal)}" ?`,
       confirmLabel: 'Supprimer',
       cancelLabel: 'Annuler',
       variant: 'danger',
@@ -712,6 +728,9 @@ const Nutrition = ({ user }) => {
         <button type="button" className="btn btn-secondary" onClick={createMeal}>
           + Nouveau repas
         </button>
+        <button type="button" className="btn btn-secondary" onClick={() => openTemplates(null)}>
+          🍱 Repas types
+        </button>
       </div>
 
       {/* Liste des entrées du jour */}
@@ -739,7 +758,7 @@ const Nutrition = ({ user }) => {
                     >
                       <span className="nut-meal-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
                       <span className="nut-meal-main">
-                        <span className="nut-meal-name">Repas {meal.number}</span>
+                        <span className="nut-meal-name">{mealLabel(meal)}</span>
                         <span className="nut-meal-stats">
                           {meal.entries.length === 0
                             ? 'Vide'
@@ -774,6 +793,14 @@ const Nutrition = ({ user }) => {
                         <button type="button" className="btn btn-secondary btn-small" onClick={() => openAdHoc(meal.id)}>
                           + Saisie rapide
                         </button>
+                        <button type="button" className="btn btn-secondary btn-small" onClick={() => openTemplates(meal)}>
+                          + Repas type
+                        </button>
+                        {meal.entries.length > 0 && (
+                          <button type="button" className="btn btn-outline btn-small" onClick={() => saveMealAsTemplate(meal)}>
+                            ⭐ Enregistrer comme repas type
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -784,6 +811,16 @@ const Nutrition = ({ user }) => {
           </div>
         )}
       </div>
+
+      {/* Repas types (liste, ajout au journal, création / modification) */}
+      <MealTemplatesModal
+        open={!!templatesModal}
+        onClose={() => setTemplatesModal(null)}
+        date={date}
+        targetMeal={templatesModal?.meal || null}
+        seed={templatesModal?.seed || null}
+        onApplied={onTemplateApplied}
+      />
 
       {/* Modale bibliothèque (picker ou manage) */}
       <FoodLibraryModal
@@ -811,7 +848,7 @@ const Nutrition = ({ user }) => {
                   disabled={movingEntry.meal_id === m.id}
                   onClick={() => moveEntry(movingEntry, m.id)}
                 >
-                  <span>Repas {m.number}</span>
+                  <span>{mealLabel(m)}</span>
                   <span className="nut-move-hint">
                     {movingEntry.meal_id === m.id
                       ? 'Déjà dedans'
@@ -843,7 +880,7 @@ const Nutrition = ({ user }) => {
             <div className="adh-header">
               <h2 className="adh-title">
                 Saisie rapide
-                {mealTarget && meals.find(m => m.id === mealTarget) ? ` · Repas ${meals.find(m => m.id === mealTarget).number}` : ''}
+                {mealTarget && meals.find(m => m.id === mealTarget) ? ` · ${mealLabel(meals.find(m => m.id === mealTarget))}` : ''}
               </h2>
               <button type="button" className="adh-close" onClick={() => setAdHocOpen(false)} aria-label="Fermer">✕</button>
             </div>

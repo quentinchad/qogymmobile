@@ -301,17 +301,28 @@ if ($action === 'entries') {
         // Round final pour éviter les .999999 d'accumulation
         foreach ($totals as $k => $v) $totals[$k] = round($v, 1);
 
-        // Repas du jour, numérotés dans l'ordre de création (Repas 1, 2...)
-        $stmt = $pdo->prepare("
-            SELECT id FROM qogym_food_meals
-            WHERE user_id = ? AND meal_date = ?
-            ORDER BY id ASC
-        ");
-        $stmt->execute([$user['id'], $date]);
+        // Repas du jour, numérotés dans l'ordre de création (Repas 1, 2...).
+        // `name` = nom du repas type d'origine (colonne ajoutée par
+        // migration_meal_templates_20261127.sql) ; null sinon / sans migration.
+        try {
+            $stmt = $pdo->prepare("
+                SELECT id, name FROM qogym_food_meals
+                WHERE user_id = ? AND meal_date = ?
+                ORDER BY id ASC
+            ");
+            $stmt->execute([$user['id'], $date]);
+        } catch (PDOException $e) {
+            $stmt = $pdo->prepare("
+                SELECT id, NULL AS name FROM qogym_food_meals
+                WHERE user_id = ? AND meal_date = ?
+                ORDER BY id ASC
+            ");
+            $stmt->execute([$user['id'], $date]);
+        }
         $meals = [];
         $n = 1;
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $m) {
-            $meals[] = ['id' => (int)$m['id'], 'number' => $n++];
+            $meals[] = ['id' => (int)$m['id'], 'number' => $n++, 'name' => $m['name'] !== null && $m['name'] !== '' ? $m['name'] : null];
         }
 
         jsonResponse([
@@ -529,6 +540,346 @@ if ($action === 'meals') {
     }
 
     jsonResponse(['error' => 'Méthode non supportée'], 405);
+}
+
+// ============================================================================
+// REPAS TYPES (qogym_meal_templates + qogym_meal_template_items)
+//
+//   - GET    ?action=templates               → mes repas types + leurs aliments + totaux
+//   - POST   ?action=templates  {name, items:[…]}      → crée un repas type
+//   - POST   ?action=templates  {name, from_meal_id}   → crée depuis un repas du journal
+//   - PUT    ?action=templates&id=N  {name?, items?}   → renomme / remplace les aliments
+//   - DELETE ?action=templates&id=N                    → supprime
+//   - POST   ?action=apply_template {template_id, date, meal_id?}
+//       → ajoute tous les aliments au journal : dans un NOUVEAU repas du jour
+//         (nommé comme le repas type), ou dans le repas `meal_id` existant.
+//
+// Un aliment de repas type = mêmes champs qu'une entrée du journal
+// (food_item_id facultatif, nom, unité, valeurs /100 g) + quantity_g OU
+// quantity_units. À l'ajout, si l'aliment est encore dans la bibliothèque,
+// ses valeurs actuelles sont utilisées (une correction de la bibliothèque
+// profite donc aux repas types).
+// Migration : sql/migration_meal_templates_20261127.sql
+// ============================================================================
+
+const MEAL_TEMPLATE_MAX_ITEMS = 40;
+
+/** Valide un aliment de repas type ; renvoie la ligne à insérer ou une erreur. */
+function readTemplateItem(PDO $pdo, int $userId, $raw, &$err): ?array
+{
+    if (!is_array($raw)) { $err = 'Aliment invalide'; return null; }
+    $f = readNutritionFields($raw);
+    if (!validateNutrition($f, $err)) return null;
+
+    $quantityG     = isset($raw['quantity_g'])     && $raw['quantity_g']     !== '' && $raw['quantity_g']     !== null ? (float)$raw['quantity_g']     : null;
+    $quantityUnits = isset($raw['quantity_units']) && $raw['quantity_units'] !== '' && $raw['quantity_units'] !== null ? (float)$raw['quantity_units'] : null;
+    if ($quantityUnits !== null) {
+        if ($f['grams_per_unit'] === null) { $err = "« {$f['name']} » : grams_per_unit requis pour une quantité en unités"; return null; }
+        if ($quantityUnits <= 0 || $quantityUnits > 9999) { $err = "« {$f['name']} » : nombre d'unités invalide"; return null; }
+        $quantityG = round($quantityUnits * $f['grams_per_unit'], 2);
+    }
+    if ($quantityG === null || $quantityG <= 0 || $quantityG > 99999) {
+        $err = "« {$f['name']} » : quantité invalide";
+        return null;
+    }
+
+    $foodItemId = isset($raw['food_item_id']) && (int)$raw['food_item_id'] > 0 ? (int)$raw['food_item_id'] : null;
+    if ($foodItemId !== null) {
+        $stmt = $pdo->prepare("SELECT id FROM qogym_food_items WHERE id = ? AND user_id = ?");
+        $stmt->execute([$foodItemId, $userId]);
+        if (!$stmt->fetch()) $foodItemId = null; // aliment d'un autre / supprimé : on garde la copie
+    }
+
+    return $f + [
+        'food_item_id'   => $foodItemId,
+        'quantity_g'     => $quantityG,
+        'quantity_units' => $quantityUnits,
+    ];
+}
+
+function readTemplateName($raw, &$err): ?string
+{
+    $name = trim((string)($raw ?? ''));
+    if ($name === '') { $err = 'Nom du repas type requis'; return null; }
+    // 80 caractères max (sans mb_* : mbstring n'est pas garanti sur l'hébergement)
+    if (!preg_match('/^.{1,80}$/us', $name)) { $err = 'Nom trop long (80 max)'; return null; }
+    return $name;
+}
+
+function insertTemplateItems(PDO $pdo, int $templateId, array $items): void
+{
+    $stmt = $pdo->prepare("
+        INSERT INTO qogym_meal_template_items
+            (template_id, position, food_item_id, name, unit_label, grams_per_unit,
+             quantity_g, quantity_units, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    foreach (array_values($items) as $i => $it) {
+        $stmt->execute([
+            $templateId, $i, $it['food_item_id'], $it['name'], $it['unit_label'], $it['grams_per_unit'],
+            $it['quantity_g'], $it['quantity_units'],
+            $it['kcal_per_100g'], $it['protein_per_100g'], $it['carbs_per_100g'], $it['fat_per_100g'],
+        ]);
+    }
+}
+
+/**
+ * Aliments des repas types donnés, avec les valeurs ACTUELLES de la
+ * bibliothèque quand l'aliment y est encore. Renvoie [template_id => [items]].
+ */
+function loadTemplateItems(PDO $pdo, int $userId, array $templateIds): array
+{
+    if (!$templateIds) return [];
+    $ph = implode(',', array_fill(0, count($templateIds), '?'));
+    $stmt = $pdo->prepare("
+        SELECT ti.template_id, ti.position, fi.id AS lib_id,
+               COALESCE(fi.name, ti.name) AS name,
+               CASE WHEN fi.id IS NULL THEN ti.unit_label     ELSE fi.unit_label     END AS unit_label,
+               CASE WHEN fi.id IS NULL THEN ti.grams_per_unit ELSE fi.grams_per_unit END AS grams_per_unit,
+               ti.quantity_g, ti.quantity_units,
+               COALESCE(fi.kcal_per_100g,    ti.kcal_per_100g)    AS kcal_per_100g,
+               COALESCE(fi.protein_per_100g, ti.protein_per_100g) AS protein_per_100g,
+               COALESCE(fi.carbs_per_100g,   ti.carbs_per_100g)   AS carbs_per_100g,
+               COALESCE(fi.fat_per_100g,     ti.fat_per_100g)     AS fat_per_100g
+        FROM qogym_meal_template_items ti
+        LEFT JOIN qogym_food_items fi ON fi.id = ti.food_item_id AND fi.user_id = ?
+        WHERE ti.template_id IN ($ph)
+        ORDER BY ti.template_id, ti.position, ti.id
+    ");
+    $stmt->execute(array_merge([$userId], array_map('intval', $templateIds)));
+    $out = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $gpu   = $r['grams_per_unit'] !== null ? (float)$r['grams_per_unit'] : null;
+        $units = $r['quantity_units'] !== null ? (float)$r['quantity_units'] : null;
+        $qg    = (float)$r['quantity_g'];
+        if ($units !== null && $gpu !== null && $gpu > 0) {
+            $qg = round($units * $gpu, 2);          // l'unité a pu changer de poids
+        } elseif ($gpu === null || $r['unit_label'] === null) {
+            $units = null;                           // l'aliment n'est plus « à l'unité »
+        }
+        $f = $qg / 100.0;
+        $out[(int)$r['template_id']][] = [
+            'food_item_id'     => $r['lib_id'] !== null ? (int)$r['lib_id'] : null,
+            'name'             => $r['name'],
+            'unit_label'       => $r['unit_label'],
+            'grams_per_unit'   => $gpu,
+            'quantity_g'       => $qg,
+            'quantity_units'   => $units,
+            'kcal_per_100g'    => (float)$r['kcal_per_100g'],
+            'protein_per_100g' => (float)$r['protein_per_100g'],
+            'carbs_per_100g'   => (float)$r['carbs_per_100g'],
+            'fat_per_100g'     => (float)$r['fat_per_100g'],
+            'totals' => [
+                'kcal'    => round((float)$r['kcal_per_100g']    * $f, 1),
+                'protein' => round((float)$r['protein_per_100g'] * $f, 1),
+                'carbs'   => round((float)$r['carbs_per_100g']   * $f, 1),
+                'fat'     => round((float)$r['fat_per_100g']     * $f, 1),
+            ],
+        ];
+    }
+    return $out;
+}
+
+function templateWithItems(array $t, array $items): array
+{
+    $tot = ['kcal' => 0, 'protein' => 0, 'carbs' => 0, 'fat' => 0];
+    foreach ($items as $it) foreach ($tot as $k => $_) $tot[$k] += $it['totals'][$k];
+    foreach ($tot as $k => $v) $tot[$k] = round($v, 1);
+    return [
+        'id'     => (int)$t['id'],
+        'name'   => $t['name'],
+        'items'  => $items,
+        'totals' => $tot,
+    ];
+}
+
+if ($action === 'templates' || $action === 'apply_template') {
+    try {
+        $uid = (int)$user['id'];
+
+        // --- LISTE ---
+        if ($action === 'templates' && $method === 'GET') {
+            $stmt = $pdo->prepare("SELECT id, name FROM qogym_meal_templates WHERE user_id = ? ORDER BY name ASC");
+            $stmt->execute([$uid]);
+            $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $items = loadTemplateItems($pdo, $uid, array_column($templates, 'id'));
+            $out = [];
+            foreach ($templates as $t) $out[] = templateWithItems($t, $items[(int)$t['id']] ?? []);
+            jsonResponse(['success' => true, 'templates' => $out]);
+        }
+
+        // --- CRÉER ---
+        if ($action === 'templates' && $method === 'POST') {
+            $err = null;
+            $name = readTemplateName($input['name'] ?? null, $err);
+            if ($name === null) jsonResponse(['error' => $err], 400);
+
+            $items = [];
+            if (!empty($input['from_meal_id'])) {
+                // Depuis un repas du journal : on reprend ses aliments tels quels
+                $mealId = (int)$input['from_meal_id'];
+                $stmt = $pdo->prepare("SELECT id FROM qogym_food_meals WHERE id = ? AND user_id = ?");
+                $stmt->execute([$mealId, $uid]);
+                if (!$stmt->fetch()) jsonResponse(['error' => 'Repas introuvable'], 404);
+                $stmt = $pdo->prepare("
+                    SELECT food_item_id, name_snapshot AS name, unit_label, grams_per_unit,
+                           quantity_g, quantity_units,
+                           kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g
+                    FROM qogym_food_entries
+                    WHERE meal_id = ? AND user_id = ?
+                    ORDER BY consumed_at ASC, id ASC
+                ");
+                $stmt->execute([$mealId, $uid]);
+                $raws = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!$raws) jsonResponse(['error' => 'Ce repas est vide'], 400);
+            } else {
+                $raws = $input['items'] ?? null;
+                if (!is_array($raws) || !$raws) jsonResponse(['error' => 'Ajoute au moins un aliment'], 400);
+            }
+            if (count($raws) > MEAL_TEMPLATE_MAX_ITEMS) {
+                jsonResponse(['error' => 'Trop d\'aliments (' . MEAL_TEMPLATE_MAX_ITEMS . ' max)'], 400);
+            }
+            foreach ($raws as $raw) {
+                $it = readTemplateItem($pdo, $uid, $raw, $err);
+                if ($it === null) jsonResponse(['error' => $err], 400);
+                $items[] = $it;
+            }
+
+            $pdo->beginTransaction();
+            try {
+                $stmt = $pdo->prepare("INSERT INTO qogym_meal_templates (user_id, name) VALUES (?, ?)");
+                $stmt->execute([$uid, $name]);
+                $templateId = (int)$pdo->lastInsertId();
+                insertTemplateItems($pdo, $templateId, $items);
+                $pdo->commit();
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                if ($e->getCode() === '23000') jsonResponse(['error' => 'Tu as déjà un repas type avec ce nom'], 409);
+                throw $e;
+            }
+            jsonResponse(['success' => true, 'id' => $templateId]);
+        }
+
+        // --- MODIFIER (nom et/ou liste complète d'aliments) ---
+        if ($action === 'templates' && $method === 'PUT') {
+            $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($input['id'] ?? 0);
+            $stmt = $pdo->prepare("SELECT id FROM qogym_meal_templates WHERE id = ? AND user_id = ?");
+            $stmt->execute([$id, $uid]);
+            if (!$stmt->fetch()) jsonResponse(['error' => 'Repas type introuvable'], 404);
+
+            $err = null;
+            $name = null;
+            if (array_key_exists('name', $input)) {
+                $name = readTemplateName($input['name'], $err);
+                if ($name === null) jsonResponse(['error' => $err], 400);
+            }
+            $items = null;
+            if (array_key_exists('items', $input)) {
+                if (!is_array($input['items']) || !$input['items']) jsonResponse(['error' => 'Ajoute au moins un aliment'], 400);
+                if (count($input['items']) > MEAL_TEMPLATE_MAX_ITEMS) {
+                    jsonResponse(['error' => 'Trop d\'aliments (' . MEAL_TEMPLATE_MAX_ITEMS . ' max)'], 400);
+                }
+                $items = [];
+                foreach ($input['items'] as $raw) {
+                    $it = readTemplateItem($pdo, $uid, $raw, $err);
+                    if ($it === null) jsonResponse(['error' => $err], 400);
+                    $items[] = $it;
+                }
+            }
+
+            $pdo->beginTransaction();
+            try {
+                if ($name !== null) {
+                    $stmt = $pdo->prepare("UPDATE qogym_meal_templates SET name = ? WHERE id = ? AND user_id = ?");
+                    $stmt->execute([$name, $id, $uid]);
+                }
+                if ($items !== null) {
+                    $pdo->prepare("DELETE FROM qogym_meal_template_items WHERE template_id = ?")->execute([$id]);
+                    insertTemplateItems($pdo, $id, $items);
+                }
+                $pdo->commit();
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                if ($e->getCode() === '23000') jsonResponse(['error' => 'Tu as déjà un repas type avec ce nom'], 409);
+                throw $e;
+            }
+            jsonResponse(['success' => true]);
+        }
+
+        // --- SUPPRIMER ---
+        if ($action === 'templates' && $method === 'DELETE') {
+            $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($input['id'] ?? 0);
+            $stmt = $pdo->prepare("DELETE FROM qogym_meal_templates WHERE id = ? AND user_id = ?");
+            $stmt->execute([$id, $uid]);
+            if ($stmt->rowCount() === 0) jsonResponse(['error' => 'Repas type introuvable'], 404);
+            // Les aliments partent avec (ON DELETE CASCADE) ; le journal n'est pas touché.
+            jsonResponse(['success' => true]);
+        }
+
+        // --- AJOUTER AU JOURNAL ---
+        if ($action === 'apply_template' && $method === 'POST') {
+            $templateId = (int)($input['template_id'] ?? 0);
+            $stmt = $pdo->prepare("SELECT id, name FROM qogym_meal_templates WHERE id = ? AND user_id = ?");
+            $stmt->execute([$templateId, $uid]);
+            $template = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$template) jsonResponse(['error' => 'Repas type introuvable'], 404);
+            $items = loadTemplateItems($pdo, $uid, [$templateId])[$templateId] ?? [];
+            if (!$items) jsonResponse(['error' => 'Ce repas type est vide'], 400);
+
+            $mealId = (int)($input['meal_id'] ?? 0) ?: null;
+            if ($mealId !== null) {
+                $stmt = $pdo->prepare("SELECT meal_date FROM qogym_food_meals WHERE id = ? AND user_id = ?");
+                $stmt->execute([$mealId, $uid]);
+                $meal = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$meal) jsonResponse(['error' => 'Repas introuvable'], 404);
+                $date = $meal['meal_date'];
+            } else {
+                $date = $input['date'] ?? date('Y-m-d');
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date)) {
+                    jsonResponse(['error' => 'date invalide (format YYYY-MM-DD)'], 400);
+                }
+            }
+            $consumedAt = $date . ' ' . date('H:i:s');
+
+            $pdo->beginTransaction();
+            try {
+                if ($mealId === null) {
+                    $stmt = $pdo->prepare("INSERT INTO qogym_food_meals (user_id, meal_date, name) VALUES (?, ?, ?)");
+                    $stmt->execute([$uid, $date, $template['name']]);
+                    $mealId = (int)$pdo->lastInsertId();
+                }
+                $stmt = $pdo->prepare("
+                    INSERT INTO qogym_food_entries
+                        (user_id, food_item_id, name_snapshot,
+                         unit_label, grams_per_unit, quantity_units,
+                         kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g,
+                         quantity_g, consumed_at, meal_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($items as $it) {
+                    $stmt->execute([
+                        $uid, $it['food_item_id'], $it['name'],
+                        $it['unit_label'], $it['grams_per_unit'], $it['quantity_units'],
+                        $it['kcal_per_100g'], $it['protein_per_100g'], $it['carbs_per_100g'], $it['fat_per_100g'],
+                        $it['quantity_g'], $consumedAt, $mealId,
+                    ]);
+                }
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
+            jsonResponse(['success' => true, 'meal_id' => $mealId, 'added' => count($items)]);
+        }
+
+        jsonResponse(['error' => 'Méthode non supportée'], 405);
+    } catch (PDOException $e) {
+        // Table / colonne absente : migration pas encore jouée
+        if (in_array($e->getCode(), ['42S02', '42S22'], true)) {
+            jsonResponse(['error' => 'Repas types indisponibles pour le moment', 'code' => 'migration_needed'], 503);
+        }
+        throw $e;
+    }
 }
 
 jsonResponse(['error' => 'Action non reconnue'], 400);

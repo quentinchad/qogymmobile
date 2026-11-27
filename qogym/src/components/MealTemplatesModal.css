@@ -1,0 +1,212 @@
+/* ============================================================
+   MealTemplatesModal — repas types (repas prédéfinis)
+   S'appuie sur .adh-overlay / .adh-modal / .adh-header (Nutrition.css)
+============================================================ */
+
+.mtm-modal {
+  max-height: calc(100vh - 5rem);
+}
+.mtm-body {
+  padding: 1rem 1.1rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.mtm-footer {
+  padding: 0.75rem 1.1rem 1rem;
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.mtm-empty {
+  text-align: center;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  padding: 0.5rem 0;
+}
+.mtm-empty p { margin: 0.35rem 0; }
+.mtm-empty--small { text-align: left; padding: 0.25rem 0 0.75rem; }
+.mtm-empty-icon { font-size: 2rem; }
+.mtm-hint { font-size: 0.82rem; opacity: 0.85; }
+
+/* Liste des repas types */
+.mtm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.mtm-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+}
+.mtm-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+}
+.mtm-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.mtm-card-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.mtm-card-stats {
+  font-size: 0.8rem;
+  color: var(--success-color, #2ecc71);
+}
+.mtm-card-items {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9aa79a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mtm-card-items:empty { display: none; }
+.mtm-apply { flex-shrink: 0; }
+
+.mtm-card-detail {
+  padding: 0 0.75rem 0.75rem;
+}
+.mtm-detail-list {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  font-size: 0.88rem;
+}
+.mtm-detail-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+}
+.mtm-detail-qty {
+  color: var(--text-secondary, #9aa79a);
+  white-space: nowrap;
+}
+.mtm-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Éditeur */
+.mtm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #9aa79a);
+  margin-bottom: 0.9rem;
+}
+.mtm-field input,
+.mtm-edit-qty input {
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-color, #1a1d1c);
+  color: var(--text-primary, #dfeee4);
+  font-size: 16px; /* pas de zoom auto sur iOS */
+}
+.mtm-edit-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mtm-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.mtm-edit-order {
+  display: flex;
+  flex-direction: column;
+}
+.mtm-edit-order button {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.6rem;
+  line-height: 1.1;
+  padding: 0.1rem 0.2rem;
+  cursor: pointer;
+}
+.mtm-edit-order button:disabled { opacity: 0.25; cursor: default; }
+.mtm-edit-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mtm-edit-name span {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mtm-edit-name small {
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.75rem;
+}
+.mtm-edit-qty {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #9aa79a);
+}
+.mtm-edit-qty input {
+  width: 5rem;
+  padding: 0.4rem 0.5rem;
+}
+.mtm-edit-remove {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(231, 76, 60, 0.12);
+  color: var(--danger-color, #e74c3c);
+  cursor: pointer;
+}
+.mtm-add-item { margin-bottom: 0.75rem; }
+.mtm-totals {
+  font-size: 0.88rem;
+  color: var(--text-secondary, #9aa79a);
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(46, 125, 80, 0.12);
+}
+.mtm-totals strong { color: var(--text-primary, #dfeee4); }
+
+@media (max-width: 480px) {
+  .mtm-edit-qty input { width: 4.2rem; }
+  .mtm-card-head { flex-wrap: wrap; }
+  .mtm-apply { width: 100%; }
+}

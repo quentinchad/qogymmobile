@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { store, useCached } from '@/lib/storage';
 import { useUpdate } from '@/lib/update';
 import { fmtDateTime, isTrue, MONTH_NAMES } from '@/lib/format';
-import { colors, QOJIM, radius } from '@/theme';
+import { colors, radius } from '@/theme';
 import { Avatar, Button, Card, IconBtn, Input, Loader, Pill, SectionTitle, TabTitle, T, tap } from '@/components/ui';
 import { Sheet } from '@/components/Sheet';
 import { useConfirm, useToast } from '@/components/Feedback';
@@ -173,7 +173,7 @@ export default function ProfileScreen({ active }: TabScreenProps) {
         <Row icon="library-outline" label="Mes exercices & progression" onPress={() => router.push(`/exercises/${user.id}`)} />
         <Row icon="nutrition-outline" label="Objectifs nutrition" onPress={() => setGoals(true)} />
         <Row icon="lock-closed-outline" label="Modifier le mot de passe" onPress={() => router.push('/change-password')} />
-        {isTrue(user.is_admin) && <Row icon="shield-outline" label="Espace admin (site web)" onPress={() => Linking.openURL(`${QOJIM}/admin`)} />}
+        {isTrue(user.is_admin) && <Row icon="shield-outline" label="Administration" onPress={() => router.push('/admin')} />}
       </View>
 
       {/* Confidentialité */}

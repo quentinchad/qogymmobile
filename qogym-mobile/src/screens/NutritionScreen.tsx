@@ -10,12 +10,14 @@ import { Bar, Ring } from '@/components/Visuals';
 import { Sheet } from '@/components/Sheet';
 import { useConfirm, useToast } from '@/components/Feedback';
 import { emptyFoodDraft, FoodDraft, FoodForm, FoodItem, FoodLibrarySheet, foodPayload } from '@/components/FoodLibrarySheet';
+import { MealTemplatesSheet } from '@/components/MealTemplatesSheet';
 import type { TabScreenProps } from '@/app/index';
 
 type Totals = { kcal: number; protein: number; carbs: number; fat: number };
 type Targets = { kcal: number | null; protein: number | null; carbs: number | null; fat: number | null };
 
 const nowTime = () => new Date().toTimeString().slice(0, 8);
+const mealLabel = (m: { number: number; name?: string | null }) => `Repas ${m.number}${m.name ? ` · ${m.name}` : ''}`;
 
 export default function NutritionScreen({ active }: TabScreenProps) {
   const toast = useToast();
@@ -33,6 +35,8 @@ export default function NutritionScreen({ active }: TabScreenProps) {
   const [adHoc, setAdHoc] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [moving, setMoving] = useState<any>(null);
+  // Repas types : null = fermé ; meal = repas cible ; seed = pré-remplissage depuis un repas
+  const [templates, setTemplates] = useState<{ meal: any | null; seed: { name: string; items: any[] } | null } | null>(null);
 
   const loadTargets = useCallback(async () => {
     try {
@@ -169,7 +173,7 @@ export default function NutritionScreen({ active }: TabScreenProps) {
 
   const deleteMeal = async (m: any) => {
     const n = m.entries.length;
-    if (!(await confirm({ title: n ? `Supprimer « Repas ${m.number} » et ses ${n} aliment${n > 1 ? 's' : ''} ?` : `Supprimer « Repas ${m.number} » ?`, confirmLabel: 'Supprimer', variant: 'danger' })))
+    if (!(await confirm({ title: n ? `Supprimer « ${mealLabel(m)} » et ses ${n} aliment${n > 1 ? 's' : ''} ?` : `Supprimer « ${mealLabel(m)} » ?`, confirmLabel: 'Supprimer', variant: 'danger' })))
       return;
     try {
       await nutritionApi.deleteMeal(m.id);
@@ -299,6 +303,7 @@ export default function NutritionScreen({ active }: TabScreenProps) {
           <Button title="Saisie rapide" icon="flash-outline" small variant="secondary" onPress={() => openAdd(null, 'adhoc')} style={{ flex: 1 }} />
           <Button title="Repas" icon="restaurant-outline" small variant="secondary" onPress={createMeal} style={{ flex: 1 }} />
         </View>
+        <Button title="Repas types" icon="fast-food-outline" small variant="outline" onPress={() => setTemplates({ meal: null, seed: null })} />
 
         <Card style={{ gap: 6 }}>
           <T v="h3" style={{ marginBottom: 4 }}>
@@ -323,7 +328,9 @@ export default function NutritionScreen({ active }: TabScreenProps) {
                     >
                       <Ionicons name={open ? 'chevron-down' : 'chevron-forward'} size={18} color={colors.goldLight} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.mealName}>Repas {m.number}</Text>
+                        <Text style={styles.mealName} numberOfLines={1}>
+                          {mealLabel(m)}
+                        </Text>
                         <Text style={styles.entryStats}>
                           {m.entries.length === 0
                             ? 'Vide'
@@ -338,6 +345,19 @@ export default function NutritionScreen({ active }: TabScreenProps) {
                         <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 8 }}>
                           <Button title="Bibliothèque" small icon="add" onPress={() => openAdd(m.id, 'picker')} style={{ flex: 1 }} />
                           <Button title="Saisie rapide" small variant="secondary" onPress={() => openAdd(m.id, 'adhoc')} style={{ flex: 1 }} />
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 8 }}>
+                          <Button title="Repas type" small variant="secondary" icon="fast-food-outline" onPress={() => setTemplates({ meal: m, seed: null })} style={{ flex: 1 }} />
+                          {m.entries.length > 0 && (
+                            <Button
+                              title="Enregistrer"
+                              small
+                              variant="outline"
+                              icon="star-outline"
+                              onPress={() => setTemplates({ meal: null, seed: { name: m.name || '', items: m.entries } })}
+                              style={{ flex: 1 }}
+                            />
+                          )}
                         </View>
                       </View>
                     )}
@@ -355,7 +375,7 @@ export default function NutritionScreen({ active }: TabScreenProps) {
         mode={library || 'manage'}
         onClose={() => setLibrary(null)}
         onPick={addFromLibrary}
-        title={library === 'picker' && mealTarget ? `Ajouter · Repas ${meals.find((m) => m.id === mealTarget)?.number ?? ''}` : undefined}
+        title={library === 'picker' && mealTarget && meals.find((m) => m.id === mealTarget) ? `Ajouter · ${mealLabel(meals.find((m) => m.id === mealTarget))}` : undefined}
       />
       <AdHocSheet
         visible={adHoc}
@@ -368,12 +388,23 @@ export default function NutritionScreen({ active }: TabScreenProps) {
           toast('Aliment ajouté', 'success');
         }}
       />
+      <MealTemplatesSheet
+        visible={!!templates}
+        onClose={() => setTemplates(null)}
+        date={date}
+        targetMeal={templates?.meal ?? null}
+        seed={templates?.seed ?? null}
+        onApplied={(mealId) => {
+          if (mealId) setOpenMeals((o) => ({ ...o, [mealId]: true }));
+          loadDay();
+        }}
+      />
       <EditQtySheet entry={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); loadDay(); }} />
       <Sheet visible={!!moving} onClose={() => setMoving(null)} title={moving ? `Déplacer « ${moving.name} »` : ''}>
         <View style={{ gap: 8, paddingBottom: 10 }}>
           {mealGroups.map((m) => (
             <Pressable key={m.id} disabled={moving?.meal_id === m.id} onPress={() => moveEntry(moving, m.id)} style={[styles.moveOpt, moving?.meal_id === m.id && { opacity: 0.4 }]}>
-              <Text style={styles.mealName}>Repas {m.number}</Text>
+              <Text style={styles.mealName}>{mealLabel(m)}</Text>
               <Text style={styles.entryStats}>{moving?.meal_id === m.id ? 'Déjà dedans' : `${m.entries.length} aliment${m.entries.length > 1 ? 's' : ''}`}</Text>
             </Pressable>
           ))}

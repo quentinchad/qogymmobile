@@ -337,8 +337,16 @@ export const adminService = {
   deleteSessionType: (typeId) => 
     api.delete(`/admin.php?type_id=${typeId}`),
   
-  getQojimSessions: () => 
+  getQojimSessions: () =>
     api.get('/admin.php?qojim_sessions=1'),
+
+  // Ce qui sera supprimé avec ce compte (pour la confirmation)
+  getDeletePreview: (userId) =>
+    api.get(`/admin.php?delete_preview=${userId}`),
+
+  // Suppression définitive : confirmUsername doit être le pseudo exact
+  deleteUser: (userId, confirmUsername) =>
+    api.post('/admin.php', { action: 'delete_user', user_id: userId, confirm_username: confirmUsername }),
 };
 
 // Service profil utilisateur public
@@ -477,6 +485,29 @@ export const nutritionService = {
   // Déplace une entrée dans un repas (mealId) ou la sort de son repas (null)
   moveEntryToMeal: (id, mealId) =>
     api.put(`/nutrition.php?action=entries&id=${id}`, { meal_id: mealId }),
+
+  // ── Repas types (repas prédéfinis réutilisables) ──
+  getMealTemplates: () =>
+    api.get('/nutrition.php?action=templates'),
+
+  // body : { name, items: [{ food_item_id?, name, …, quantity_g | quantity_units }] }
+  createMealTemplate: (body) =>
+    api.post('/nutrition.php?action=templates', body),
+
+  updateMealTemplate: (id, body) =>
+    api.put(`/nutrition.php?action=templates&id=${id}`, body),
+
+  deleteMealTemplate: (id) =>
+    api.delete(`/nutrition.php?action=templates&id=${id}`),
+
+  // Ajoute tous les aliments du repas type au journal : dans un nouveau repas
+  // du jour (mealId null) ou dans le repas mealId. Renvoie { meal_id, added }.
+  applyMealTemplate: (templateId, date, mealId = null) =>
+    api.post('/nutrition.php?action=apply_template', {
+      template_id: templateId,
+      date,
+      ...(mealId ? { meal_id: mealId } : {}),
+    }),
 
   // Supprime le repas ET les aliments qu'il contient
   deleteMeal: (id) =>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { adminService, sessionService, remindersService, monthlyReportService, unverifiedCleanupService } from '../services/api';
 import './Admin.css';
 
@@ -18,6 +19,9 @@ const Admin = ({ user }) => {
   const [cleanupStats, setCleanupStats] = useState(null);
   const [cleanupRunning, setCleanupRunning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState(null);
+
+  // Suppression d'un utilisateur : { user, preview, typed, deleting, error }
+  const [deleting, setDeleting] = useState(null);
 
   // Rapports mensuels
   const [reportSending, setReportSending] = useState(false);
@@ -150,6 +154,30 @@ const Admin = ({ user }) => {
     }
   };
 
+  const openDeleteUser = async (u) => {
+    setDeleting({ user: u, preview: null, typed: '', deleting: false, error: null });
+    try {
+      const res = await adminService.getDeletePreview(u.id);
+      setDeleting(d => d && d.user.id === u.id ? { ...d, preview: res.data.counts } : d);
+    } catch (err) {
+      setDeleting(d => d && d.user.id === u.id
+        ? { ...d, error: err.response?.data?.error || 'Impossible de préparer la suppression' } : d);
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleting || deleting.typed !== deleting.user.username) return;
+    setDeleting(d => ({ ...d, deleting: true, error: null }));
+    try {
+      await adminService.deleteUser(deleting.user.id, deleting.typed);
+      setUsers(prev => prev.filter(x => x.id !== deleting.user.id));
+      setStats(s => s ? { ...s, total_users: Math.max(0, Number(s.total_users) - 1) } : s);
+      setDeleting(null);
+    } catch (err) {
+      setDeleting(d => ({ ...d, deleting: false, error: err.response?.data?.error || 'Erreur lors de la suppression' }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-container">
@@ -246,6 +274,7 @@ const Admin = ({ user }) => {
                   <th>Entraînements</th>
                   <th>Inscrit le</th>
                   <th>Rôle</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
@@ -256,10 +285,21 @@ const Admin = ({ user }) => {
                     <td>{u.total_workouts}</td>
                     <td>{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
                     <td>
-                      {u.is_admin === '1' ? (
+                      {Number(u.is_admin) === 1 ? (
                         <span className="badge badge-info">Admin</span>
                       ) : (
                         <span className="badge badge-secondary">Utilisateur</span>
+                      )}
+                    </td>
+                    <td>
+                      {Number(u.is_admin) !== 1 && u.id !== user?.id && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-small"
+                          onClick={() => openDeleteUser(u)}
+                        >
+                          Supprimer
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -566,6 +606,64 @@ const Admin = ({ user }) => {
           </div>
         );
       })()}
+
+      {deleting && ReactDOM.createPortal(
+        <div
+          className="adm-del-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting.deleting) setDeleting(null); }}
+        >
+          <div className="adm-del-modal" role="dialog" aria-modal="true" aria-labelledby="adm-del-title">
+            <h2 id="adm-del-title" className="adm-del-title">
+              Supprimer « {deleting.user.username} » ?
+            </h2>
+            <p className="adm-del-text">
+              Le compte <strong>{deleting.user.email}</strong> et toutes ses données seront
+              supprimés de la base. <strong>C'est définitif.</strong>
+            </p>
+            {deleting.preview ? (
+              <ul className="adm-del-counts">
+                <li>{deleting.preview.workouts} entraînement{deleting.preview.workouts > 1 ? 's' : ''}</li>
+                <li>{deleting.preview.sessions} séance{deleting.preview.sessions > 1 ? 's' : ''} créée{deleting.preview.sessions > 1 ? 's' : ''}</li>
+                <li>{deleting.preview.friends} ami{deleting.preview.friends > 1 ? 's' : ''}</li>
+                <li>{deleting.preview.food_entries} aliment{deleting.preview.food_entries > 1 ? 's' : ''} dans le journal</li>
+                <li>{deleting.preview.comments} commentaire{deleting.preview.comments > 1 ? 's' : ''}</li>
+              </ul>
+            ) : !deleting.error && <p className="adm-del-text">Calcul de ce qui sera supprimé…</p>}
+            <label className="adm-del-label">
+              Pour confirmer, tape son pseudo : <code>{deleting.user.username}</code>
+              <input
+                type="text"
+                className="form-input"
+                value={deleting.typed}
+                onChange={(e) => setDeleting(d => ({ ...d, typed: e.target.value }))}
+                autoFocus
+                autoComplete="off"
+                disabled={deleting.deleting}
+              />
+            </label>
+            {deleting.error && <div className="form-error">{deleting.error}</div>}
+            <div className="adm-del-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeleting(null)}
+                disabled={deleting.deleting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmDeleteUser}
+                disabled={deleting.deleting || deleting.typed !== deleting.user.username}
+              >
+                {deleting.deleting ? 'Suppression…' : 'Supprimer définitivement'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

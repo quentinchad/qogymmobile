@@ -277,4 +277,58 @@ export const nutritionApi = {
   createMeal: (date: string) => post('/nutrition.php?action=meals', { date }),
   moveEntry: (id: number, meal_id: number | null) => put(`/nutrition.php?action=entries&id=${id}`, { meal_id }),
   deleteMeal: (id: number) => del(`/nutrition.php?action=meals&id=${id}`),
+  // Repas types (repas prédéfinis réutilisables)
+  templates: () => get<{ templates: MealTemplate[] }>('/nutrition.php?action=templates'),
+  createTemplate: (body: { name: string; items: MealTemplateItemInput[] }) => post('/nutrition.php?action=templates', body),
+  updateTemplate: (id: number, body: { name?: string; items?: MealTemplateItemInput[] }) =>
+    put(`/nutrition.php?action=templates&id=${id}`, body),
+  deleteTemplate: (id: number) => del(`/nutrition.php?action=templates&id=${id}`),
+  /** Ajoute les aliments au journal : nouveau repas du jour (mealId null) ou repas existant. */
+  applyTemplate: (template_id: number, date: string, meal_id?: number | null) =>
+    post<{ meal_id: number; added: number }>('/nutrition.php?action=apply_template', {
+      template_id,
+      date,
+      ...(meal_id ? { meal_id } : {}),
+    }),
+};
+
+export type MealTemplateItemInput = {
+  food_item_id?: number | null;
+  name: string;
+  unit_label?: string | null;
+  grams_per_unit?: number | null;
+  kcal_per_100g: number;
+  protein_per_100g: number;
+  carbs_per_100g: number;
+  fat_per_100g: number;
+  quantity_g?: number;
+  quantity_units?: number;
+};
+export type MealTemplateItem = Required<Omit<MealTemplateItemInput, 'quantity_units'>> & {
+  quantity_units: number | null;
+  totals: { kcal: number; protein: number; carbs: number; fat: number };
+};
+export type MealTemplate = {
+  id: number;
+  name: string;
+  items: MealTemplateItem[];
+  totals: { kcal: number; protein: number; carbs: number; fat: number };
+};
+
+// ── Administration (comptes admin uniquement) ───────────────────────────
+export const adminApi = {
+  stats: () => get('/admin.php?stats=1'),
+  users: () => get('/admin.php?users=1'),
+  sessionTypes: () => get('/admin.php?session_types=1'),
+  createType: (name: string) => post('/admin.php', { action: 'create_type', name }),
+  deleteType: (id: number) => del(`/admin.php?type_id=${id}`),
+  qojimSessions: () => get('/admin.php?qojim_sessions=1'),
+  deletePreview: (userId: number) => get(`/admin.php?delete_preview=${userId}`),
+  deleteUser: (userId: number, confirmUsername: string) =>
+    post('/admin.php', { action: 'delete_user', user_id: userId, confirm_username: confirmUsername }),
+  reminderStats: () => get('/send_reminders.php'),
+  sendReminders: (type: 'all' | 'inactive' | 'never_active') => post('/send_reminders.php', { type }),
+  cleanupStats: () => get('/cleanup_unverified_accounts.php'),
+  runCleanup: () => post('/cleanup_unverified_accounts.php'),
+  generateReports: () => post('/monthly_reports.php', { action: 'generate' }),
 };

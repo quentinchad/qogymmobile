@@ -233,6 +233,16 @@ commentaire parent est aussi notifié.
 | `?action=entries` | POST | Ajoute une consommation (`quantity_g` ou `quantity_units`) |
 | `?action=entries&id=N` | PUT | Modifie quantité |
 | `?action=entries&id=N` | DELETE | Supprime |
+| `?action=templates` | GET | Repas types (repas prédéfinis) + aliments + totaux |
+| `?action=templates` | POST | Crée un repas type (`{name, items}` ou `{name, from_meal_id}`) |
+| `?action=templates&id=N` | PUT | Renomme / remplace les aliments |
+| `?action=templates&id=N` | DELETE | Supprime le repas type (le journal n'est pas touché) |
+| `?action=apply_template` | POST | `{template_id, date, meal_id?}` : ajoute tous les aliments (nouveau repas nommé, ou repas existant) |
+
+> Repas types : `sql/migration_meal_templates_20261127.sql` (tables
+> `qogym_meal_templates`, `qogym_meal_template_items` + colonne facultative
+> `qogym_food_meals.name`). À l'ajout, les valeurs actuelles de la
+> bibliothèque sont utilisées si l'aliment y est encore.
 
 ### `preferences.php`
 | Méthode | Description |
@@ -264,6 +274,15 @@ Génère des rapports mensuels avec stats. Endpoints `list`, `get`,
 ### `admin.php`
 Endpoints admin uniquement (vérification `is_admin = 1` au début).
 Gestion users, types de séance, modération.
+
+Suppression définitive d'un compte :
+- `GET ?delete_preview=N` → ce qui sera supprimé (entraînements, séances, amis…) ;
+- `POST {action: 'delete_user', user_id, confirm_username}` → supprime le
+  compte et toutes ses données dans une transaction (rien n'est supprimé en
+  cas d'erreur). Refusé pour soi-même et pour un autre admin ;
+  `confirm_username` doit être le pseudo exact. Les séances du compte qui ont
+  servi aux entraînements d'autres utilisateurs sont seulement marquées
+  supprimées (`deleted_at`) pour ne pas casser leur historique.
 
 ### `send_reminders.php`
 **Pas un endpoint API** mais un script cron à appeler quotidiennement

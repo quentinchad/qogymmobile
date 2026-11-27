@@ -104,3 +104,60 @@
     padding: 0.5rem;
   }
 }
+
+/* Confirmation de suppression d'un utilisateur */
+.adm-del-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.adm-del-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card-bg, #242a28);
+  color: var(--text-primary, #dfeee4);
+  border: 1px solid rgba(231, 76, 60, 0.45);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+.adm-del-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+.adm-del-text {
+  margin: 0 0 0.75rem;
+  color: var(--text-secondary, #9aa79a);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.adm-del-text strong { color: var(--text-primary, #dfeee4); }
+.adm-del-counts {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.adm-del-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.75rem;
+}
+.adm-del-label code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 0.3rem;
+  border-radius: 4px;
+}
+.adm-del-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
